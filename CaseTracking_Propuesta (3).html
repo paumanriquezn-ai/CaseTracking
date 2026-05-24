@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CaseTracking — Generador de Propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --orange:#FF6B00; --orange-lt:#FF8C38; --dark:#1A1A1A; --dark2:#222222;
+  --dark3:#2E2E2E; --gray:#3A3A3A; --gray-lt:#B0B0B0; --white:#FFFFFF;
+  --page-w:794px; --page-h:1123px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:#111;color:var(--white);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
+.app-header{background:var(--dark);border-bottom:2px solid var(--orange);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+.app-header .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;}
+.app-header .logo-text span{color:var(--orange);}
+.app-header .badge{background:var(--orange);color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:3px;text-transform:uppercase;}
+.header-actions{margin-left:auto;display:flex;gap:10px;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:5px;font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.btn-primary{background:var(--orange);color:#fff;}
+.btn-primary:hover{background:var(--orange-lt);transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,107,0,.35);}
+.btn-outline{background:transparent;color:#fff;border:1.5px solid #444;}
+.btn-outline:hover{border-color:var(--orange);color:var(--orange);}
+.btn-sm{padding:7px 14px;font-size:12px;}
+
+/* APP BODY */
+.app-body{display:grid;grid-template-columns:420px 1fr;flex:1;min-height:0;}
+
+/* SIDEBAR */
+.sidebar{background:var(--dark2);border-right:1px solid #333;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;}
+.form-section{background:var(--dark3);border:1px solid #3a3a3a;border-radius:8px;overflow:hidden;}
+.form-section-header{background:var(--gray);padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--orange);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.form-section-header .toggle{margin-left:auto;transition:transform .2s;}
+.form-section-header.collapsed .toggle{transform:rotate(-90deg);}
+.form-section-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.form-section-body.hidden{display:none;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-lt);}
+.field input,.field textarea,.field select{background:#1a1a1a;border:1px solid #444;border-radius:5px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:9px 12px;transition:border-color .15s;width:100%;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--orange);}
+.field textarea{resize:vertical;min-height:80px;}
+.field select option{background:#222;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pain-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;}
+.pain-row textarea{min-height:56px;}
+.btn-del{background:#3a1010;border:1px solid #662020;color:#ff6b6b;border-radius:5px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.btn-del:hover{background:#5a1a1a;}
+.btn-add{background:#1a2a1a;border:1px dashed #448844;color:#88cc88;border-radius:5px;padding:8px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;width:100%;text-align:center;}
+.btn-add:hover{background:#223322;}
+.plan-card{background:#1c1c1c;border:1px solid #3a3a3a;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.plan-card-header{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--orange);text-transform:uppercase;}
+.toggle-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-lt);}
+.toggle-switch input[type=checkbox]{accent-color:var(--orange);width:16px;height:16px;cursor:pointer;}
+.roi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* DIIO BOX */
+.diio-box{background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:12px;font-size:11px;color:var(--gray-lt);line-height:1.6;}
+.diio-box strong{color:var(--orange);}
+.diio-parse-btn{background:var(--orange);color:#fff;border:none;border-radius:5px;padding:8px 14px;font-family:'Barlow',sans-serif;font-weight:700;font-size:12px;cursor:pointer;width:100%;margin-top:6px;letter-spacing:.5px;}
+.diio-parse-btn:hover{background:var(--orange-lt);}
+
+/* PREVIEW */
+.preview-panel{background:#0e0e0e;overflow-y:auto;padding:32px;display:flex;flex-direction:column;align-items:center;gap:28px;}
+.preview-actions{display:flex;align-items:center;gap:10px;align-self:flex-end;}
+.preview-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gray-lt);}
+
+/* PDF PAGE BASE */
+.pdf-page{width:var(--page-w);min-height:var(--page-h);background:var(--dark);position:relative;overflow:hidden;box-shadow:0 8px 48px rgba(0,0,0,.7);flex-shrink:0;}
+.wave-orange{position:absolute;pointer-events:none;z-index:0;}
+
+/* PAGE 1 — COVER */
+#page-cover{background:#1a1a1a;display:flex;flex-direction:column;}
+.cover-badges{position:relative;z-index:2;padding:36px 48px 0;display:flex;align-items:center;gap:24px;}
+.cover-badge-item{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--gray-lt);letter-spacing:.5px;}
+.cover-badge-icon{width:44px;height:44px;border:1.5px solid #555;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.cover-content{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 48px 60px;}
+.cover-tag{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:12px;}
+.cover-for-label{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:var(--gray-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.cover-client-name{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;text-transform:uppercase;color:var(--orange);line-height:1;margin-bottom:20px;}
+.cover-title{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:900;line-height:0.92;text-transform:uppercase;color:var(--white);margin-bottom:20px;letter-spacing:-1px;}
+.cover-divider{width:120px;height:3px;background:var(--orange);margin:0 auto 24px;}
+.cover-meta{display:flex;gap:36px;justify-content:center;font-size:12px;color:var(--gray-lt);}
+.cover-meta strong{color:#fff;display:block;font-size:13px;}
+.cover-logo-bottom{position:absolute;bottom:36px;right:48px;z-index:2;}
+.cover-logo-bottom .logo-lg{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:.5px;text-align:right;}
+.cover-logo-bottom .logo-lg .by{font-size:12px;color:var(--gray-lt);display:block;font-weight:400;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.ct-dot{display:inline-block;width:18px;height:18px;background:var(--orange);border-radius:50% 50% 50% 0;transform:rotate(-45deg);margin-right:6px;vertical-align:middle;position:relative;top:-2px;}
+
+/* PAGE 2 — PAIN */
+#page-pain{background:#181818;display:flex;flex-direction:column;}
+.page-header-bar{padding:40px 52px 0;display:flex;flex-direction:column;gap:4px;}
+.page-num{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--orange);}
+.page-main-title{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;text-transform:uppercase;line-height:.9;color:#fff;margin-top:6px;}
+.page-sub-title{font-size:14px;color:var(--gray-lt);margin-top:10px;font-weight:300;max-width:500px;line-height:1.5;}
+.pain-divider{width:60px;height:3px;background:var(--orange);margin:16px 52px;}
+.pain-list{padding:0 52px;display:flex;flex-direction:column;gap:12px;flex:1;}
+.pain-item{display:grid;grid-template-columns:38px 1fr;gap:14px;align-items:start;background:#222;border:1px solid #333;border-left:3px solid var(--orange);border-radius:6px;padding:14px 16px;}
+.pain-num{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;color:var(--orange);opacity:.6;line-height:1;}
+.pain-content{}
+.pain-text{font-size:13px;color:#fff;font-weight:500;line-height:1.4;margin-bottom:4px;}
+.pain-solution{font-size:11px;color:var(--orange);font-weight:400;line-height:1.4;font-style:italic;}
+.pain-solution::before{content:'✓ CaseTracking: ';font-weight:700;font-style:normal;}
+.page-footer-bar{margin-top:auto;padding:18px 52px;border-top:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#555;}
+.page-footer-logo{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#444;}
+.page-footer-logo span{color:var(--orange);opacity:.6;}
+
+/* PAGE 3 — ROI */
+#page-roi{background:#1a1a1a;display:flex;flex-direction:column;}
+.roi-display-section{padding:0 52px;flex:1;}
+.roi-big-number{text-align:center;margin:18px 0;padding:22px;background:linear-gradient(135deg,#222,#1a1a1a);border:1px solid var(--orange);border-radius:10px;position:relative;overflow:hidden;}
+.roi-big-number::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,107,0,.08);}
+.roi-big-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-lt);margin-bottom:6px;}
+.roi-big-value{font-family:'Barlow Condensed',sans-serif;font-size:68px;font-weight:900;color:var(--orange);line-height:1;}
+.roi-big-sub{font-size:11px;color:var(--gray-lt);margin-top:4px;}
+.roi-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.roi-card{background:#222;border:1px solid #333;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;}
+.roi-card-icon{font-size:20px;}
+.roi-card-label{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-lt);}
+.roi-card-value{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--orange);}
+.roi-card-desc{font-size:10px;color:var(--gray-lt);line-height:1.4;}
+.roi-formula-box{background:#222;border:1px solid #333;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:10px;color:var(--gray-lt);line-height:1.7;}
+.roi-formula-box strong{color:#fff;}
+
+/* PAGE 4 — PRICING */
+#page-pricing{background:#1a1a1a;display:flex;flex-direction:column;}
+.pricing-body{padding:0 52px;flex:1;display:flex;flex-direction:column;gap:14px;}
+.pricing-intro{font-size:13px;color:var(--gray-lt);line-height:1.6;max-width:560px;}
+.pricing-table{width:100%;border-collapse:collapse;font-size:12px;}
+.pricing-table th{background:var(--orange);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;text-align:left;}
+.pricing-table td{padding:10px 14px;border-bottom:1px solid #2e2e2e;color:#fff;font-size:12px;}
+.pricing-table tr:nth-child(even) td{background:#222;}
+.pricing-table tr:last-child td{border-bottom:none;}
+.pricing-table .total-row td{background:#2a2a2a;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--orange);border-top:2px solid var(--orange);}
+.price-highlight{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--orange);}
+.addons-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:-4px;}
+.addons-table th{background:#2a2a2a;color:var(--orange);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;text-align:left;}
+.addons-table td{padding:8px 12px;border-bottom:1px solid #2a2a2a;color:var(--gray-lt);}
+.includes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.include-item{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--gray-lt);line-height:1.4;}
+.include-item::before{content:'✓';color:var(--orange);font-weight:700;flex-shrink:0;margin-top:1px;}
+.note-box{background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.25);border-radius:6px;padding:10px 14px;font-size:11px;color:var(--gray-lt);line-height:1.6;}
+.note-box strong{color:var(--orange);}
+
+/* OFERTA VIGENTE BOX */
+.offer-valid-box{background:linear-gradient(135deg,#2a1800,#1a1200);border:2px solid var(--orange);border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.offer-valid-label{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);}
+.offer-valid-date{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#fff;}
+.offer-valid-sub{font-size:10px;color:var(--gray-lt);}
+
+/* PAGE 5 — DISCOUNT */
+#page-discount{background:#1a1a1a;display:flex;flex-direction:column;}
+.discount-hero{margin:0 52px 16px;background:linear-gradient(135deg,#2a1800,#1a1a1a);border:1px solid var(--orange);border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:20px;}
+.discount-badge{background:var(--orange);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:900;padding:10px 18px;border-radius:8px;line-height:1;flex-shrink:0;}
+.discount-info h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;margin-bottom:4px;}
+.discount-info p{font-size:12px;color:var(--gray-lt);line-height:1.5;}
+.crossed{text-decoration:line-through;color:#666;font-size:12px;}
+
+/* PAGE 6 — SIGNATURE */
+#page-signature{background:#f8f8f8;display:flex;flex-direction:column;color:#111;}
+.sig-header{background:#1a1a1a;padding:36px 52px 28px;position:relative;overflow:hidden;}
+.sig-header .page-num{color:var(--orange);}
+.sig-header .page-main-title{color:#fff;}
+.sig-header .page-sub-title{color:#aaa;}
+.sig-body{padding:28px 52px;flex:1;display:flex;flex-direction:column;gap:18px;}
+.sig-section-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1a1a1a;border-bottom:2px solid var(--orange);padding-bottom:6px;margin-bottom:2px;}
+.tc-item{display:flex;align-items:flex-start;gap:10px;font-size:11px;color:#333;line-height:1.5;padding:8px 12px;background:#fff;border:1px solid #e0e0e0;border-radius:5px;}
+.tc-check{width:16px;height:16px;border:2px solid #ccc;border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+.tc-link{color:var(--orange);text-decoration:underline;font-weight:600;}
+.sig-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:4px;}
+.sig-party{display:flex;flex-direction:column;gap:8px;}
+.sig-party-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555;}
+.sig-line{height:1px;background:#333;margin-top:40px;}
+.sig-line-label{font-size:10px;color:#888;margin-top:4px;}
+.sig-field{font-size:11px;color:#555;line-height:1.6;}
+.sig-field strong{color:#111;display:block;font-size:12px;}
+.sig-date-box{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:12px 16px;font-size:11px;color:#555;display:flex;justify-content:space-between;align-items:center;}
+.sig-date-box strong{color:#111;font-size:13px;}
+.sig-footer{background:#1a1a1a;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#555;}
+.sig-footer .logo{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#444;}
+.sig-footer .logo span{color:var(--orange);opacity:.6;}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading-overlay.active{display:flex;}
+.loading-spinner{width:48px;height:48px;border:4px solid #333;border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#fff;letter-spacing:1px;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:#111;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--orange);}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generando PDF...</div>
+</div>
+
+<header class="app-header">
+  <span class="ct-dot"></span>
+  <div class="logo-text">Case<span>Tracking</span></div>
+  <div class="badge">Generador de Propuestas</div>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="updatePreview()">↻ Actualizar</button>
+    <button class="btn btn-primary" onclick="downloadPDF()">⬇ Descargar PDF</button>
+  </div>
+</header>
+
+<div class="app-body">
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar">
+
+  <!-- AM -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">👤 Account Manager <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field-row">
+        <div class="field"><label>Nombre</label><input type="text" id="amName" placeholder="Tu nombre" oninput="updatePreview()"/></div>
+        <div class="field"><label>Correo</label><input type="email" id="amEmail" placeholder="email@lemontech.com" oninput="updatePreview()"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Fecha emisión</label><input type="date" id="fechaEmision" oninput="updatePreview()"/></div>
+        <div class="field"><label>Fecha vencimiento</label><input type="date" id="fechaVencimiento" oninput="updatePreview()"/></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">🏢 Cliente <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field"><label>Nombre empresa *</label><input type="text" id="clientName" placeholder="Ej: Banco de Chile" oninput="updatePreview()"/></div>
+      <div class="field-row">
+        <div class="field"><label>Contacto</label><input type="text" id="clientContact" placeholder="Nombre contacto" oninput="updatePreview()"/></div>
+        <div class="field"><label>RUT / Tax ID</label><input type="text" id="clientRut" placeholder="12.345.678-9" oninput="updatePreview()"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>País</label>
+          <select id="clientCountry" onchange="updatePreview()">
+            <option>Chile</option><option>México</option><option>Colombia</option>
+            <option>Perú</option><option>Argentina</option><option>Ecuador</option>
+            <option>Uruguay</option><option>Costa Rica</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="field"><label>Industria</label><input type="text" id="clientIndustry" placeholder="Banca, Retail..." oninput="updatePreview()"/></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOLORES — con integración Diio -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">🩺 Dolores del Cliente <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="diio-box">
+        <strong>⚡ Importar desde Diio</strong><br/>
+        Pega aquí el resumen de reunión generado por Diio y los dolores se crearán automáticamente con su solución CaseTracking.
+      </div>
+      <div class="field"><label>Resumen Diio (pega aquí)</label>
+        <textarea id="diioText" rows="5" placeholder="Pega el texto de tu reunión Diio aquí... El sistema identificará automáticamente los dolores y generará cómo CaseTracking los soluciona."></textarea>
+      </div>
+      <button class="diio-parse-btn" onclick="parseDiio()">⚡ Generar dolores desde Diio con IA</button>
+      <div style="height:1px;background:#333;margin:4px 0;"></div>
+      <div id="painContainer"></div>
+      <button class="btn-add" onclick="addPain()">+ Agregar dolor manualmente</button>
+    </div>
+  </div>
+
+  <!-- ROI -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">📊 Calculadora ROI <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="roi-grid">
+        <div class="field"><label>N° abogados</label><input type="number" id="roiAbogados" value="10" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Horas/mes por abogado</label><input type="number" id="roiHoras" value="160" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>% tiempo administrativo</label><input type="number" id="roiPctAdmin" value="35" min="1" max="100" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Días resolución caso</label><input type="number" id="roiDiasRes" value="30" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Costo hora/abogado</label><input type="number" id="roiCostoHora" value="50" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Moneda ROI</label>
+          <select id="roiMoneda" onchange="calcROI();updatePreview()">
+            <option>USD</option><option>CLP</option><option>MXN</option><option>COP</option><option>PEN</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:12px;font-size:12px;color:var(--gray-lt);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Horas admin. actuales/mes:</span><strong id="roiHorasAdmin" style="color:#fff">0 h</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Horas recuperadas/mes:</span><strong id="roiHorasRec" style="color:var(--orange)">0 h</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Causas adicionales/mes:</span><strong id="roiCausas" style="color:#fff">0</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Ahorro mensual:</span><strong id="roiMensual" style="color:#fff">$0</strong></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid #333;padding-top:7px;margin-top:4px;"><span>Ahorro anual estimado:</span><strong id="roiAnual" style="color:var(--orange);font-size:15px;">$0</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICING -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">💰 Cotización <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field-row">
+        <div class="field"><label>Moneda</label>
+          <select id="pricingCurrency" onchange="updatePreview()">
+            <option>USD</option><option>CLP</option><option>MXN</option><option>UF</option><option>COP</option><option>PEN</option>
+          </select>
+        </div>
+        <div class="field"><label>Modalidad facturación</label>
+          <select id="pricingModality" onchange="updatePreview()">
+            <option>Trimestral</option><option>Semestral</option><option>Anual</option><option>Mensual</option>
+          </select>
+        </div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Plan Principal</div>
+        <div class="field-row">
+          <div class="field"><label>Cantidad causas</label><input type="number" id="planQty" value="100" min="1" oninput="updatePreview()"/></div>
+          <div class="field">
+            <label>Valor mensual base</label>
+            <input type="number" id="planPrice" value="500" min="0" oninput="updatePreview()"/>
+            <span style="font-size:10px;color:var(--gray-lt);margin-top:2px;">Se calcula automáticamente el total del periodo</span>
+          </div>
+        </div>
+        <div class="field"><label>Implementación (único pago, 0 = gratis)</label><input type="number" id="planImpl" value="0" min="0" oninput="updatePreview()"/></div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Add-ons <span style="font-size:10px;font-weight:400;color:var(--gray-lt);text-transform:none;">(valor mensual base)</span></div>
+        <div class="toggle-switch" style="margin-bottom:6px;">
+          <input type="checkbox" id="addonVigilancia" onchange="updatePreview()"/>
+          <label for="addonVigilancia">Vigilancia de RUT</label>
+          <input type="number" id="addonVigilanciaPrice" value="200" min="0" style="width:80px;margin-left:auto;" oninput="updatePreview()"/>
+        </div>
+        <div class="toggle-switch" style="margin-bottom:6px;">
+          <input type="checkbox" id="addonLIA" onchange="updatePreview()"/>
+          <label for="addonLIA">LIA (IA)</label>
+          <input type="number" id="addonLIAPrice" value="150" min="0" style="width:80px;margin-left:auto;" oninput="updatePreview()"/>
+        </div>
+        <div class="toggle-switch">
+          <input type="checkbox" id="addonOtro" onchange="updatePreview()"/>
+          <input type="text" id="addonOtroNombre" placeholder="Nombre add-on" style="flex:1;margin:0 6px;" oninput="updatePreview()"/>
+          <input type="number" id="addonOtroPrice" value="0" min="0" style="width:80px;" oninput="updatePreview()"/>
+        </div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Oferta Especial (Página 5)</div>
+        <div style="font-size:11px;color:var(--gray-lt);margin-bottom:6px;line-height:1.5;">Ingresa el <strong style="color:#fff;">valor final con oferta</strong> por cada ítem (mensual base). El periodo se calculará automáticamente.</div>
+        <div class="field">
+          <label>Valor final Plan (mensual)</label>
+          <input type="number" id="discountPlanFinal" value="" min="0" placeholder="Ej: 350 (dejar vacío = sin oferta)" oninput="updatePreview()"/>
+        </div>
+        <div id="discountAddonFields"></div>
+        <div class="field" style="margin-top:4px;">
+          <label>Nombre / Motivo de la oferta</label>
+          <input type="text" id="discountReason" placeholder="Piloto, Early bird, Acuerdo especial..." oninput="updatePreview()"/>
+        </div>
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field"><label>Inicio suscripción</label><input type="date" id="planStart" oninput="updatePreview()"/></div>
+          <div class="field"><label>Fin suscripción</label><input type="date" id="planEnd" oninput="updatePreview()"/></div>
+        </div>
+      </div>
+      <div class="field"><label>Incluido en el precio (separar con comas)</label>
+        <textarea id="planIncludes" rows="3" oninput="updatePreview()">Implementación gratis, Usuarios ilimitados, Soporte personalizado, Capacitación inicial, Actualización automática, Reuniones de seguimiento, Comité de resultados, Backup diario, Acceso desde cualquier lugar, 99.5% disponibilidad</textarea>
+      </div>
+      <div class="field"><label>Condiciones particulares</label>
+        <textarea id="pricingNotes" rows="2" placeholder="IVA no incluido, condiciones especiales..." oninput="updatePreview()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">✍️ Página de Firma <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field"><label>Nombre firmante cliente</label><input type="text" id="sigClientName" placeholder="Nombre completo" oninput="updatePreview()"/></div>
+      <div class="field"><label>Cargo firmante cliente</label><input type="text" id="sigClientRole" placeholder="Gerente Legal, Director..." oninput="updatePreview()"/></div>
+      <div class="field"><label>Lugar de firma</label><input type="text" id="sigPlace" placeholder="Santiago, Chile" oninput="updatePreview()"/></div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ============ PREVIEW ============ -->
+<main class="preview-panel" id="previewPanel">
+  <div class="preview-actions">
+    <span class="preview-label">Vista Previa</span>
+    <button class="btn btn-outline btn-sm" onclick="updatePreview()">↻ Actualizar</button>
+    <button class="btn btn-primary btn-sm" onclick="downloadPDF()">⬇ PDF</button>
+  </div>
+
+  <div id="pagesContainer">
+
+    <!-- PAGE 1: COVER -->
+    <div class="pdf-page" id="page-cover">
+      <svg class="wave-orange" style="top:0;right:0;width:340px;height:260px;" viewBox="0 0 340 260" fill="none">
+        <path d="M340 0 C280 80,200 60,260 160 C310 230,340 200,340 260 L340 0Z" fill="#FF6B00" opacity="0.15"/>
+        <path d="M340 0 C300 50,240 40,290 110 C330 165,340 150,340 200 L340 0Z" fill="#FF6B00" opacity="0.25"/>
+        <path d="M340 0 C320 30,290 20,315 70 C330 100,340 90,340 130 L340 0Z" fill="#FF6B00" opacity="0.4"/>
+      </svg>
+      <svg class="wave-orange" style="bottom:0;left:0;width:100%;height:300px;" viewBox="0 0 794 300" fill="none">
+        <path d="M0 300 C100 200,300 270,500 210 C650 160,750 210,794 190 L794 300Z" fill="#FF6B00" opacity="0.12"/>
+        <path d="M0 300 C80 230,200 285,400 250 C580 215,700 250,794 230 L794 300Z" fill="#FF6B00" opacity="0.2"/>
+        <path d="M0 300 C60 270,160 295,320 278 C480 262,620 285,794 265 L794 300Z" fill="#FF6B00" opacity="0.35"/>
+      </svg>
+      <div class="cover-badges">
+        <div class="cover-badge-item">
+          <div class="cover-badge-icon">🏆</div>
+          <div>Chambers LawTech<br/>2022 · Banda 1</div>
+        </div>
+        <div class="cover-badge-item">
+          <div class="cover-badge-icon" style="font-size:10px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">AKKR</div>
+          <div>Accel-KKR Backed</div>
+        </div>
+        <div class="cover-badge-item">
+          <div class="cover-badge-icon">🔒</div>
+          <div>ISO/IEC 27001</div>
+        </div>
+      </div>
+      <div class="cover-content">
+        <div class="cover-tag">Propuesta Comercial</div>
+        <div class="cover-for-label">Preparada para</div>
+        <div class="cover-client-name" id="cv-clientName">NOMBRE CLIENTE</div>
+        <div class="cover-title">GESTIÓN<br/>JUDICIAL<br/>INTELIGENTE</div>
+        <div class="cover-divider"></div>
+        <div class="cover-meta">
+          <div><strong id="cv-date">—</strong>Fecha de emisión</div>
+          <div><strong id="cv-exp">—</strong>Válida hasta</div>
+          <div><strong id="cv-am">—</strong>Account Manager</div>
+        </div>
+      </div>
+      <div class="cover-logo-bottom">
+        <div class="logo-lg">
+          <span class="ct-dot" style="width:14px;height:14px;"></span>
+          <span>Case</span><span style="color:var(--orange);">Tracking</span>
+          <span class="by">by LemonTech</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: PAIN POINTS -->
+    <div class="pdf-page" id="page-pain">
+      <svg class="wave-orange" style="top:0;right:0;width:180px;height:180px;" viewBox="0 0 180 180" fill="none">
+        <circle cx="160" cy="20" r="80" fill="#FF6B00" opacity="0.05"/>
+      </svg>
+      <div class="page-header-bar">
+        <div class="page-num">02 — Diagnóstico</div>
+        <div class="page-main-title">LOS DESAFÍOS DE<br/><span id="cv-clientName2" style="color:var(--orange)">TU EMPRESA</span></div>
+        <div class="page-sub-title">Identificamos los siguientes puntos de dolor en tu operación legal y cómo CaseTracking los resuelve.</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pain-list" id="painListDisplay"></div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Case</span>Tracking by LemonTech</div>
+        <div>2 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: ROI -->
+    <div class="pdf-page" id="page-roi">
+      <div class="page-header-bar">
+        <div class="page-num">03 — Retorno de Inversión</div>
+        <div class="page-main-title">TU POTENCIAL<br/>DE AHORRO</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="roi-display-section">
+        <div class="roi-big-number">
+          <div class="roi-big-label">Ahorro anual estimado con CaseTracking</div>
+          <div class="roi-big-value" id="disp-roiAnual">$0</div>
+          <div class="roi-big-sub" id="disp-roiSub">Basado en los datos de tu equipo legal</div>
+        </div>
+        <div class="roi-cards">
+          <div class="roi-card">
+            <div class="roi-card-icon">⏱</div>
+            <div class="roi-card-label">Horas recuperadas/mes</div>
+            <div class="roi-card-value" id="disp-horasRec">0</div>
+            <div class="roi-card-desc">Tiempo liberado de tareas administrativas manuales</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-icon">📂</div>
+            <div class="roi-card-label">Causas adicionales posibles</div>
+            <div class="roi-card-value" id="disp-causas">0</div>
+            <div class="roi-card-desc">Nuevos casos que tu equipo podría gestionar</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-icon">💸</div>
+            <div class="roi-card-label">Ahorro mensual</div>
+            <div class="roi-card-value" id="disp-mensual">$0</div>
+            <div class="roi-card-desc">En costos operativos del área legal</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-icon">📉</div>
+            <div class="roi-card-label">Reducción tiempo gestión</div>
+            <div class="roi-card-value">62.5%</div>
+            <div class="roi-card-desc">Benchmark comprobado con PPU Legal</div>
+          </div>
+        </div>
+        <div class="roi-formula-box">
+          <strong>¿Cómo se calcula?</strong><br/>
+          <span id="disp-formula1">Horas admin. mensuales = abogados × horas/mes × % admin</span><br/>
+          Horas recuperadas = horas admin × 62.5% (benchmark PPU Legal) · Causas adicionales = horas recuperadas ÷ (días resolución × 8h/día)<br/>
+          Ahorro mensual = horas recuperadas × costo/hora · Ahorro anual = ahorro mensual × 12
+        </div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Case</span>Tracking by LemonTech</div>
+        <div>3 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: PRICING FULL -->
+    <div class="pdf-page" id="page-pricing">
+      <div class="page-header-bar">
+        <div class="page-num">04 — Propuesta Económica</div>
+        <div class="page-main-title">INVERSIÓN<br/>REQUERIDA</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pricing-body">
+        <div class="pricing-intro" id="disp-pricingIntro"></div>
+        <table class="pricing-table" id="pricingTableFull">
+          <thead><tr><th>Ítem</th><th>Detalle</th><th>Valor mensual</th><th>Total periodo</th></tr></thead>
+          <tbody id="pricingTableBody"></tbody>
+        </table>
+        <div id="addonsSection" style="display:none;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--orange);text-transform:uppercase;margin-bottom:5px;">Add-ons</div>
+          <table class="addons-table" id="addonsTableFull">
+            <thead><tr><th>Servicio</th><th>Valor mensual</th><th>Total periodo</th></tr></thead>
+            <tbody id="addonsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="implSection" style="display:none;background:#222;border:1px solid #333;border-radius:6px;padding:10px 14px;font-size:12px;">
+          <span style="color:var(--gray-lt);">Implementación (costo único):</span>
+          <strong id="disp-impl" style="color:#fff;float:right;"></strong>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--orange);text-transform:uppercase;margin-bottom:7px;">Incluido en el precio</div>
+          <div class="includes-grid" id="includesGrid"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#222;border:1px solid #333;border-radius:6px;padding:12px 16px;">
+          <div style="font-size:11px;color:var(--gray-lt);">¿Listo para empezar? Escríbenos directamente.</div>
+          <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:700;color:var(--orange);" id="disp-amEmail4">ventas@lemontech.com</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:3px;"><a style="color:var(--gray-lt);" href="https://www.lemontech.com">www.lemontech.com</a></div>
+          </div>
+        </div>
+        <div class="note-box" id="notesBox" style="display:none;">
+          <strong>Condiciones:</strong> <span id="disp-notes"></span>
+        </div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Case</span>Tracking by LemonTech</div>
+        <div>4 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: DISCOUNT -->
+    <div class="pdf-page" id="page-discount">
+      <div class="page-header-bar">
+        <div class="page-num">05 — Propuesta Especial</div>
+        <div class="page-main-title">OFERTA<br/>EXCLUSIVA</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pricing-body">
+        <div class="discount-hero">
+          <div class="discount-badge" id="disp-discountBadge">0%</div>
+          <div class="discount-info">
+            <h3 id="disp-discountTitle">Descuento Especial</h3>
+            <p id="disp-discountDesc">Condición exclusiva para este acuerdo comercial.</p>
+          </div>
+        </div>
+        <table class="pricing-table">
+          <thead><tr><th>Ítem</th><th>Precio regular</th><th>Precio con descuento</th><th>Ahorro</th></tr></thead>
+          <tbody id="discountTableBody"></tbody>
+        </table>
+        <div style="background:linear-gradient(135deg,#2a1800,#1a1a1a);border:1px solid var(--orange);border-radius:8px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-lt);margin-bottom:3px;">Total mensual con descuento</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--orange);" id="disp-totalDiscount">$0</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gray-lt);">Vigencia del acuerdo</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;" id="disp-planPeriod">—</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:6px;">Precio regular:</div>
+            <div class="crossed" id="disp-totalRegular">$0</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--orange);text-transform:uppercase;margin-bottom:7px;">Incluido en el precio</div>
+          <div class="includes-grid" id="includesGrid2"></div>
+        </div>
+        <div class="offer-valid-box">
+          <div>
+            <div class="offer-valid-label">⏰ Oferta vigente hasta</div>
+            <div class="offer-valid-date" id="disp-offerDate2">—</div>
+            <div class="offer-valid-sub">Vencida esta fecha, el precio aplicable será el indicado en la página anterior, salvo aprobación expresa de la dirección comercial de LemonTech.</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gray-lt);margin-bottom:4px;">¿Listo para empezar? Contáctanos</div>
+            <div style="font-size:13px;font-weight:700;color:var(--orange);" id="disp-amEmail5">ventas@lemontech.com</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:6px;"><a style="color:var(--orange);" href="https://www.lemontech.com">www.lemontech.com</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Case</span>Tracking by LemonTech</div>
+        <div>5 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 6: SIGNATURE -->
+    <div class="pdf-page" id="page-signature">
+      <div class="sig-header" style="position:relative;overflow:hidden;">
+        <svg style="position:absolute;top:0;right:0;width:220px;height:140px;pointer-events:none;" viewBox="0 0 220 140" fill="none">
+          <path d="M220 0 C180 50,140 30,170 90 C195 135,220 120,220 140 L220 0Z" fill="#FF6B00" opacity="0.2"/>
+        </svg>
+        <div class="page-num">06 — Aceptación Comercial</div>
+        <div class="page-main-title" style="color:#fff;">TÉRMINOS Y<br/>CONDICIONES</div>
+        <div class="page-sub-title" style="color:#aaa;">Al firmar esta propuesta, el cliente declara haber leído y aceptar los siguientes términos y condiciones.</div>
+      </div>
+      <div class="sig-body">
+
+        <!-- RESUMEN PROPUESTA -->
+        <div>
+          <div class="sig-section-title">Resumen de la Propuesta</div>
+          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11px;color:#333;">
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Cliente</span><strong id="sig-clientName" style="color:#111;font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Plan</span><strong id="sig-plan" style="color:#111;font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Total mensual</span><strong id="sig-total" style="color:var(--orange);font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Vigencia oferta</span><strong id="sig-validDate" style="color:#111;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Modalidad</span><strong id="sig-modality" style="color:#111;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Account Manager</span><strong id="sig-am" style="color:#111;">—</strong></div>
+          </div>
+        </div>
+
+        <!-- TÉRMINOS Y CONDICIONES -->
+        <div>
+          <div class="sig-section-title">Términos y Condiciones Aceptados</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>He leído y acepto los <a class="tc-link" href="https://www.lemontech.com/legal/terminos-y-condiciones">Términos y Condiciones de Uso</a> de LemonTech / CaseTracking, disponibles en www.lemontech.com/legal/terminos-y-condiciones</div>
+            </div>
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>He leído y acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-privacidad">Política de Privacidad</a> de LemonTech, disponible en www.lemontech.com/legal/politica-de-privacidad</div>
+            </div>
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>He leído y acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-seguridad-de-la-informacion">Política General de Seguridad de la Información</a>, disponible en www.lemontech.com/legal/politica-de-seguridad-de-la-informacion</div>
+            </div>
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>Acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-privacidad">Política de Cookies</a> de LemonTech, conforme a lo indicado en www.lemontech.com/legal/politica-de-privacidad</div>
+            </div>
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>Declaro que la empresa y datos entregados en esta propuesta son fidedignos y que tengo facultades para obligar a mi organización en los términos aquí descritos.</div>
+            </div>
+            <div class="tc-item">
+              <div class="tc-check">□</div>
+              <div>Entiendo que los precios indicados no incluyen impuestos (IVA u otros) salvo indicación expresa, y que la oferta es válida únicamente hasta la fecha de vencimiento señalada en esta propuesta.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FIRMA -->
+        <div>
+          <div class="sig-section-title">Firmas</div>
+          <div class="sig-parties">
+            <div class="sig-party">
+              <div class="sig-party-title">Por el Cliente</div>
+              <div style="height:52px;"></div>
+              <div class="sig-line"></div>
+              <div class="sig-line-label">Firma y Timbre</div>
+              <div style="margin-top:8px;" class="sig-field">
+                <strong id="sig-clientSignName">___________________________</strong>
+                <span id="sig-clientSignRole">Cargo</span>
+                <span id="sig-clientCompany" style="color:#888;font-size:10px;"></span>
+              </div>
+            </div>
+            <div class="sig-party">
+              <div class="sig-party-title">Por LemonTech / CaseTracking</div>
+              <div style="height:52px;"></div>
+              <div class="sig-line"></div>
+              <div class="sig-line-label">Firma Representante</div>
+              <div style="margin-top:8px;" class="sig-field">
+                <strong id="sig-amSignName">___________________________</strong>
+                <span>Account Manager</span>
+                <span style="color:#888;font-size:10px;">LemonTech SpA · ventas@lemontech.com</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sig-date-box">
+          <span>Lugar y fecha de firma:</span>
+          <strong id="sig-placeDate">_________________________, _____ de _____________ de _____</strong>
+        </div>
+
+      </div>
+      <div class="sig-footer">
+        <div>www.lemontech.com · ventas@lemontech.com</div>
+        <div class="logo"><span>Case</span>Tracking by LemonTech</div>
+        <div>6 / 6</div>
+      </div>
+    </div>
+
+  </div><!-- /pagesContainer -->
+</main>
+</div>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+let pains = [
+  {text:'El equipo pierde horas revisando portales judiciales manualmente.', solution:'Actualización automática de causas desde portales judiciales de LATAM.'},
+  {text:'Falta de visibilidad centralizada sobre el estado de los procesos.', solution:'Dashboard unificado con el 100% de causas activas, congeladas y archivadas.'},
+  {text:'Riesgo de vencer plazos por falta de alertas automáticas.', solution:'Notificaciones automáticas por correo ante vencimientos y movimientos clave.'}
+];
+let roiState = {};
+
+/* =========================================================
+   INIT
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fechaEmision').value = today;
+  const exp = new Date(); exp.setDate(exp.getDate()+15);
+  document.getElementById('fechaVencimiento').value = exp.toISOString().split('T')[0];
+  renderPainInputs();
+  calcROI();
+  updatePreview();
+});
+
+/* =========================================================
+   TOGGLE
+   ========================================================= */
+function toggleSection(h){
+  h.classList.toggle('collapsed');
+  h.nextElementSibling.classList.toggle('hidden');
+}
+
+/* =========================================================
+   PAIN MANAGEMENT
+   ========================================================= */
+function renderPainInputs(){
+  const c = document.getElementById('painContainer');
+  c.innerHTML='';
+  pains.forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='background:#1c1c1c;border:1px solid #333;border-radius:6px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;';
+    row.innerHTML=`
+      <div style="display:flex;gap:6px;align-items:flex-start;">
+        <textarea style="flex:1;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:7px 10px;resize:vertical;min-height:48px;" placeholder="Dolor del cliente..." oninput="pains[${i}].text=this.value;updatePreview()">${escHtml(p.text)}</textarea>
+        <button class="btn-del" onclick="removePain(${i})">✕</button>
+      </div>
+      <textarea style="background:#1a1200;border:1px solid #443300;border-radius:4px;color:#ffaa44;font-family:'Barlow',sans-serif;font-size:11px;padding:6px 10px;resize:vertical;min-height:38px;" placeholder="Cómo CaseTracking lo soluciona..." oninput="pains[${i}].solution=this.value;updatePreview()">${escHtml(p.solution)}</textarea>
+    `;
+    c.appendChild(row);
+  });
+}
+
+function addPain(){
+  pains.push({text:'',solution:''});
+  renderPainInputs();
+  updatePreview();
+}
+
+function removePain(i){
+  pains.splice(i,1);
+  renderPainInputs();
+  updatePreview();
+}
+
+/* =========================================================
+   DIIO PARSER — calls Anthropic API to extract pains
+   ========================================================= */
+async function parseDiio(){
+  const text = document.getElementById('diioText').value.trim();
+  if(!text){alert('Pega el resumen de Diio primero.');return;}
+  const btn = document.querySelector('.diio-parse-btn');
+  btn.textContent='⏳ Analizando con IA...';
+  btn.disabled=true;
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`Eres un experto en ventas de software legal. Analiza el texto de una reunión de ventas y extrae los dolores del cliente. Responde SOLO con JSON válido, sin markdown, sin backticks, sin texto adicional. Formato: {"pains":[{"text":"dolor del cliente en 1 oración clara","solution":"cómo CaseTracking lo soluciona en 1 oración"}]}. Máximo 6 dolores. Los dolores deben ser específicos y reales basados en el texto. Las soluciones deben mencionar funcionalidades concretas de CaseTracking.`,
+        messages:[{role:'user',content:`Texto de la reunión:\n\n${text}`}]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.find(b=>b.type==='text')?.text||'{}';
+    const parsed = JSON.parse(raw);
+    if(parsed.pains && Array.isArray(parsed.pains)){
+      pains = parsed.pains;
+      renderPainInputs();
+      updatePreview();
+      btn.textContent='✅ ¡Dolores generados!';
+      setTimeout(()=>{btn.textContent='⚡ Generar dolores desde Diio con IA';btn.disabled=false;},2000);
+    } else {
+      throw new Error('Formato inesperado');
+    }
+  }catch(e){
+    console.error(e);
+    btn.textContent='⚡ Generar dolores desde Diio con IA';
+    btn.disabled=false;
+    alert('No se pudo analizar el texto. Verifica que pegaste el resumen correctamente.');
+  }
+}
+
+/* =========================================================
+   ROI
+   ========================================================= */
+function calcROI(){
+  const ab=+document.getElementById('roiAbogados').value||0;
+  const h=+document.getElementById('roiHoras').value||0;
+  const pa=(+document.getElementById('roiPctAdmin').value||0)/100;
+  const dr=+document.getElementById('roiDiasRes').value||1;
+  const ch=+document.getElementById('roiCostoHora').value||0;
+  const mon=document.getElementById('roiMoneda').value;
+  const horasAdmin=ab*h*pa;
+  const horasRec=horasAdmin*0.625;
+  const causas=Math.round(horasRec/(dr*8));
+  const mens=horasRec*ch;
+  const anual=mens*12;
+  roiState={horasAdmin,horasRec,causas,mens,anual,mon};
+  const fmt=n=>mon+' '+n.toLocaleString('es-CL',{maximumFractionDigits:0});
+  document.getElementById('roiHorasAdmin').textContent=Math.round(horasAdmin)+' h';
+  document.getElementById('roiHorasRec').textContent=Math.round(horasRec)+' h';
+  document.getElementById('roiCausas').textContent=causas;
+  document.getElementById('roiMensual').textContent=fmt(mens);
+  document.getElementById('roiAnual').textContent=fmt(anual);
+}
+
+/* =========================================================
+   UPDATE PREVIEW
+   ========================================================= */
+function updatePreview(){
+  const cn=document.getElementById('clientName').value||'TU EMPRESA';
+  const am=document.getElementById('amName').value||'—';
+  const amEmail=document.getElementById('amEmail').value||'ventas@lemontech.com';
+  const fe=formatDate(document.getElementById('fechaEmision').value);
+  const fv=formatDate(document.getElementById('fechaVencimiento').value);
+  const cur=document.getElementById('pricingCurrency').value;
+  const mod=document.getElementById('pricingModality').value;
+  const fmt=n=>cur+' '+n.toLocaleString('es-CL',{maximumFractionDigits:0});
+
+  // P1
+  document.getElementById('cv-clientName').textContent=cn.toUpperCase();
+  document.getElementById('cv-date').textContent=fe;
+  document.getElementById('cv-exp').textContent=fv;
+  document.getElementById('cv-am').textContent=am;
+
+  // P2
+  document.getElementById('cv-clientName2').textContent=cn.toUpperCase();
+  renderPainDisplay();
+
+  // P3
+  const ab=+document.getElementById('roiAbogados').value||0;
+  const h=+document.getElementById('roiHoras').value||0;
+  const pa=+document.getElementById('roiPctAdmin').value||0;
+  document.getElementById('disp-roiAnual').textContent=fmt(roiState.anual||0);
+  document.getElementById('disp-roiSub').textContent=`${ab} abogados · ${h}h/mes · ${pa}% tiempo administrativo`;
+  document.getElementById('disp-horasRec').textContent=Math.round(roiState.horasRec||0)+' h';
+  document.getElementById('disp-causas').textContent=(roiState.causas||0);
+  document.getElementById('disp-mensual').textContent=fmt(roiState.mens||0);
+  document.getElementById('disp-formula1').textContent=`Horas admin. mensuales = ${ab} abogados × ${h}h × ${pa}% = ${Math.round(roiState.horasAdmin||0)}h`;
+
+  // P4 & P5
+  renderPricingPages(cur,mod,cn,amEmail,fv,fmt);
+  renderDiscountPage(cur,mod,fv,amEmail,fmt);
+
+  // P6
+  renderSignaturePage(cn,am,amEmail,cur,mod,fv,fmt);
+}
+
+function renderPainDisplay(){
+  const list=document.getElementById('painListDisplay');
+  list.innerHTML='';
+  const fp=pains.filter(p=>p.text.trim());
+  if(!fp.length){
+    list.innerHTML='<div style="color:#555;font-size:13px;text-align:center;padding:40px 0;">Agrega los dolores del cliente en el formulario ←</div>';
+    return;
+  }
+  fp.forEach((p,i)=>{
+    const item=document.createElement('div');
+    item.className='pain-item';
+    item.innerHTML=`<div class="pain-num">0${i+1}</div>
+      <div class="pain-content">
+        <div class="pain-text">${escHtml(p.text)}</div>
+        ${p.solution?`<div class="pain-solution">${escHtml(p.solution)}</div>`:''}
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+/* ---- helpers de modalidad ---- */
+function modalityMultiplier(mod){
+  return mod==='Trimestral'?3:mod==='Semestral'?6:mod==='Anual'?12:1;
+}
+function modalityLabel(mod){
+  return mod==='Trimestral'?'trimestre':mod==='Semestral'?'semestre':mod==='Anual'?'año':'mes';
+}
+function modalityShort(mod){
+  return mod==='Trimestral'?'/trim.':mod==='Semestral'?'/sem.':mod==='Anual'?'/año':'/mes';
+}
+
+/* ---- actualiza campos de oferta en sidebar según add-ons activos ---- */
+function updateDiscountAddonFields(){
+  const vigiOn=document.getElementById('addonVigilancia').checked;
+  const liaOn=document.getElementById('addonLIA').checked;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const cont=document.getElementById('discountAddonFields');
+  let html='';
+  if(vigiOn) html+=`<div class="field" style="margin-top:6px;"><label>Valor final Vigilancia (mensual)</label><input type="number" id="discountVigiFinal" value="" min="0" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  if(liaOn)  html+=`<div class="field" style="margin-top:6px;"><label>Valor final LIA/IA (mensual)</label><input type="number" id="discountLIAFinal" value="" min="0" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  if(otroOn) html+=`<div class="field" style="margin-top:6px;"><label>Valor final ${escHtml(otroN)} (mensual)</label><input type="number" id="discountOtroFinal" value="" min="0" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  cont.innerHTML=html;
+}
+
+function getVal(id,fallback){
+  const el=document.getElementById(id);
+  if(!el)return fallback;
+  const v=parseFloat(el.value);
+  return isNaN(v)||el.value===''?fallback:v;
+}
+
+function renderPricingPages(cur,mod,cn,amEmail,fv,fmt){
+  const mult=modalityMultiplier(mod);
+  const lbl=modalityLabel(mod);
+  const short=modalityShort(mod);
+  const qty=+document.getElementById('planQty').value||0;
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const impl=+document.getElementById('planImpl').value||0;
+  const vigiOn=document.getElementById('addonVigilancia').checked;
+  const vigiP=+document.getElementById('addonVigilanciaPrice').value||0;
+  const liaOn=document.getElementById('addonLIA').checked;
+  const liaP=+document.getElementById('addonLIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const notes=document.getElementById('pricingNotes').value;
+  const includes=document.getElementById('planIncludes').value;
+
+  // Valor del periodo
+  const pricePerPeriod=priceMens*mult;
+  const periodoLabel=mult===1?`${fmt(priceMens)}/mes`:`${fmt(priceMens)}/mes × ${mult} = ${fmt(pricePerPeriod)}/${lbl}`;
+
+  document.getElementById('disp-pricingIntro').innerHTML=
+    `Propuesta económica para <strong>${escHtml(cn)}</strong> · Modalidad: <strong>${mod}</strong> · Los valores se expresan en precio mensual y total del ${lbl}.`;
+
+  // Main table — cabeceras dinámicas
+  document.querySelector('#pricingTableFull thead tr').innerHTML=
+    `<th>Ítem</th><th>Detalle</th><th>Valor mensual</th><th>Total ${lbl}</th>`;
+
+  document.getElementById('pricingTableBody').innerHTML=`
+    <tr>
+      <td>Plan CaseTracking</td>
+      <td>${qty} causas · ${mod}</td>
+      <td class="price-highlight">${fmt(priceMens)}/mes</td>
+      <td>${fmt(pricePerPeriod)}/${lbl}</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">Total Plan Principal</td>
+      <td>${fmt(priceMens)}/mes</td>
+      <td>${fmt(pricePerPeriod)}/${lbl}</td>
+    </tr>`;
+
+  // Add-ons
+  const addons=[];
+  if(vigiOn)addons.push({name:'Vigilancia de RUT',price:vigiP});
+  if(liaOn) addons.push({name:'LIA (IA)',price:liaP});
+  if(otroOn&&otroN)addons.push({name:otroN,price:otroP});
+  const addonsSection=document.getElementById('addonsSection');
+  if(addons.length){
+    addonsSection.style.display='block';
+    document.querySelector('#addonsTableFull thead tr').innerHTML=`<th>Servicio</th><th>Valor mensual</th><th>Total ${lbl}</th>`;
+    document.getElementById('addonsTableBody').innerHTML=addons.map(a=>
+      `<tr><td>${escHtml(a.name)}</td><td>${fmt(a.price)}/mes</td><td>${fmt(a.price*mult)}/${lbl}</td></tr>`
+    ).join('');
+  } else addonsSection.style.display='none';
+
+  // Implementación
+  const implSection=document.getElementById('implSection');
+  if(impl>0){implSection.style.display='block';document.getElementById('disp-impl').textContent=fmt(impl)+' (pago único)';}
+  else implSection.style.display='none';
+
+  // Includes
+  const incArr=includes.split(',').filter(s=>s.trim());
+  const implInclude=impl===0?['Implementación gratis']:[];
+  const allInc=[...implInclude,...incArr.filter(s=>!s.toLowerCase().includes('implementación'))];
+  const incHTML=allInc.map(s=>`<div class="include-item">${escHtml(s.trim())}</div>`).join('');
+  document.getElementById('includesGrid').innerHTML=incHTML;
+  document.getElementById('includesGrid2').innerHTML=incHTML;
+
+  const notesBox=document.getElementById('notesBox');
+  if(notes.trim()){notesBox.style.display='block';document.getElementById('disp-notes').textContent=notes;}
+  else notesBox.style.display='none';
+
+  document.getElementById('disp-offerDate2').textContent=fv;
+  document.getElementById('disp-amEmail4').textContent=amEmail;
+  document.getElementById('disp-amEmail5').textContent=amEmail;
+
+  // Actualiza campos de oferta en sidebar
+  updateDiscountAddonFields();
+}
+
+function renderDiscountPage(cur,mod,fv,amEmail,fmt){
+  const mult=modalityMultiplier(mod);
+  const lbl=modalityLabel(mod);
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const vigiOn=document.getElementById('addonVigilancia').checked;
+  const vigiP=+document.getElementById('addonVigilanciaPrice').value||0;
+  const liaOn=document.getElementById('addonLIA').checked;
+  const liaP=+document.getElementById('addonLIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const reason=document.getElementById('discountReason').value||'Oferta especial';
+  const ps=formatDate(document.getElementById('planStart').value);
+  const pe=formatDate(document.getElementById('planEnd').value);
+
+  // Valores finales con oferta (manual o igual al precio base si vacío)
+  const planFinal=getVal('discountPlanFinal', priceMens);
+  const vigiFinal=getVal('discountVigiFinal', vigiP);
+  const liaFinal =getVal('discountLIAFinal',  liaP);
+  const otroFinal=getVal('discountOtroFinal', otroP);
+
+  // Totales regulares y con oferta
+  let totalRegMens=priceMens;
+  let totalOfMens=planFinal;
+  if(vigiOn){totalRegMens+=vigiP;totalOfMens+=vigiFinal;}
+  if(liaOn) {totalRegMens+=liaP; totalOfMens+=liaFinal;}
+  if(otroOn){totalRegMens+=otroP;totalOfMens+=otroFinal;}
+
+  const totalRegPeriod=totalRegMens*mult;
+  const totalOfPeriod=totalOfMens*mult;
+  const savingMens=totalRegMens-totalOfMens;
+  const savingPeriod=totalRegPeriod-totalOfPeriod;
+
+  // Badge — muestra ahorro si hay diferencia, si no muestra "Oferta"
+  const hasDiff=savingMens>0;
+  document.getElementById('disp-discountBadge').textContent=hasDiff
+    ?`-${fmt(savingMens)}\n/mes`
+    :'OFERTA';
+  document.getElementById('disp-discountTitle').textContent=reason;
+  document.getElementById('disp-discountDesc').textContent=`Condición exclusiva · Modalidad ${mod} · Total ${lbl}: ${fmt(totalOfPeriod)}`;
+
+  // Tabla
+  const rows=[{name:'Plan CaseTracking',reg:priceMens,fin:planFinal}];
+  if(vigiOn)rows.push({name:'Vigilancia de RUT',reg:vigiP,fin:vigiFinal});
+  if(liaOn) rows.push({name:'LIA (IA)',reg:liaP,fin:liaFinal});
+  if(otroOn&&otroN)rows.push({name:otroN,reg:otroP,fin:otroFinal});
+
+  document.getElementById('discountTableBody').innerHTML=
+    `<tr><th style="background:#2a2a2a;color:var(--orange);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Ítem</th>
+     <th style="background:#2a2a2a;color:var(--orange);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Precio regular/mes</th>
+     <th style="background:#2a2a2a;color:var(--orange);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Precio oferta/mes</th>
+     <th style="background:#2a2a2a;color:var(--orange);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Total ${lbl}</th></tr>`+
+    rows.map(r=>{
+      const sv=r.reg-r.fin;
+      const changed=sv!==0;
+      return `<tr>
+        <td>${escHtml(r.name)}</td>
+        <td>${changed?`<span class="crossed">${fmt(r.reg)}</span>`:fmt(r.reg)}</td>
+        <td class="price-highlight">${fmt(r.fin)}/mes</td>
+        <td>${fmt(r.fin*mult)}/${lbl}${changed?` <span style="color:#88cc88;font-size:10px;">(ahorras ${fmt(sv*mult)})</span>`:''}</td>
+      </tr>`;
+    }).join('')+
+    `<tr class="total-row">
+      <td colspan="2">Total ${mod}</td>
+      <td>${fmt(totalOfMens)}/mes</td>
+      <td>${fmt(totalOfPeriod)}/${lbl}</td>
+    </tr>`;
+
+  document.getElementById('disp-totalDiscount').textContent=`${fmt(totalOfMens)}/mes`;
+  document.getElementById('disp-totalRegular').textContent=`${fmt(totalRegMens)}/mes`;
+  document.getElementById('disp-planPeriod').textContent=ps&&pe?`${ps} → ${pe}`:'A convenir';
+}
+
+function renderSignaturePage(cn,am,amEmail,cur,mod,fv,fmt){
+  const mult=modalityMultiplier(mod);
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const vigiOn=document.getElementById('addonVigilancia').checked;
+  const vigiP=+document.getElementById('addonVigilanciaPrice').value||0;
+  const liaOn=document.getElementById('addonLIA').checked;
+  const liaP=+document.getElementById('addonLIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const qty=+document.getElementById('planQty').value||0;
+  const sigCn=document.getElementById('sigClientName').value||'___________________________';
+  const sigCr=document.getElementById('sigClientRole').value||'Cargo';
+  const sigPl=document.getElementById('sigPlace').value||'_______________';
+
+  // Usa precio con oferta si está definido
+  const planFinal=getVal('discountPlanFinal',priceMens);
+  const vigiFinal=getVal('discountVigiFinal',vigiP);
+  const liaFinal =getVal('discountLIAFinal', liaP);
+  const otroFinal=getVal('discountOtroFinal',otroP);
+  let totalOfMens=planFinal;
+  if(vigiOn)totalOfMens+=vigiFinal;
+  if(liaOn) totalOfMens+=liaFinal;
+  if(otroOn)totalOfMens+=otroFinal;
+
+  const hasOffer=totalOfMens!=(priceMens+(vigiOn?vigiP:0)+(liaOn?liaP:0)+(otroOn?otroP:0));
+
+  document.getElementById('sig-clientName').textContent=cn;
+  document.getElementById('sig-plan').textContent=`${qty} causas · ${mod}`;
+  document.getElementById('sig-total').textContent=`${fmt(totalOfMens)}/mes${hasOffer?' (precio oferta)':''}`;
+  document.getElementById('sig-validDate').textContent=fv;
+  document.getElementById('sig-modality').textContent=mod;
+  document.getElementById('sig-am').textContent=am;
+  document.getElementById('sig-clientSignName').textContent=sigCn;
+  document.getElementById('sig-clientSignRole').textContent=sigCr;
+  document.getElementById('sig-clientCompany').textContent=cn;
+  document.getElementById('sig-amSignName').textContent=am;
+  document.getElementById('sig-placeDate').textContent=sigPl?`${sigPl}, _____ de _____________ de _____`:'_________________________, _____ de _____________ de _____';
+}
+
+/* =========================================================
+   PDF DOWNLOAD
+   ========================================================= */
+async function downloadPDF(){
+  const overlay=document.getElementById('loadingOverlay');
+  overlay.classList.add('active');
+  try{
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pages=document.querySelectorAll('.pdf-page');
+    for(let i=0;i<pages.length;i++){
+      const canvas=await html2canvas(pages[i],{scale:2,useCORS:true,backgroundColor:'#1a1a1a',logging:false,width:794,height:1123});
+      const img=canvas.toDataURL('image/jpeg',0.95);
+      if(i>0)pdf.addPage();
+      pdf.addImage(img,'JPEG',0,0,210,297);
+    }
+    const name=document.getElementById('clientName').value||'Propuesta';
+    pdf.save(`CaseTracking_Propuesta_${name.replace(/\s+/g,'_')}.pdf`);
+  }catch(e){
+    console.error(e);
+    alert('Error al generar PDF. Revisa la consola.');
+  }finally{
+    overlay.classList.remove('active');
+  }
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function formatDate(v){
+  if(!v)return'—';
+  const[y,m,d]=v.split('-');
+  return`${d}/${m}/${y}`;
+}
+function escHtml(s){
+  return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
