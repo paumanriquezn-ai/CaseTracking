@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LemonTech — Generadores de Propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:#111;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
+
+.logo-area{text-align:center;margin-bottom:48px;}
+.logo-lt{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:8px;}
+.headline{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:900;line-height:1;}
+.headline span{color:#888;}
+.sub{font-size:15px;color:#666;margin-top:10px;font-weight:300;}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:760px;width:100%;}
+
+.card{background:#1a1a1a;border-radius:14px;overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:pointer;text-decoration:none;display:block;}
+.card:hover{transform:translateY(-6px);}
+
+.card-top{padding:36px 36px 28px;position:relative;overflow:hidden;}
+.card-top.orange{background:linear-gradient(135deg,#2a1200,#1a1a1a);}
+.card-top.purple{background:linear-gradient(135deg,#1e1040,#1a1a1a);}
+.card-top.orange:hover{background:linear-gradient(135deg,#3a1800,#222);}
+.card-top.purple:hover{background:linear-gradient(135deg,#2a1a55,#222);}
+.card:hover .card-top.orange{background:linear-gradient(135deg,#3a1800,#222);}
+.card:hover .card-top.purple{background:linear-gradient(135deg,#2a1a55,#222);}
+
+.card-wave{position:absolute;top:0;right:0;pointer-events:none;}
+.card-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:16px;}
+.card-badge.orange{background:rgba(255,107,0,.15);color:#FF6B00;border:1px solid rgba(255,107,0,.3);}
+.card-badge.purple{background:rgba(124,58,237,.15);color:#A855F7;border:1px solid rgba(124,58,237,.3);}
+
+.card-logo{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;margin-bottom:8px;position:relative;z-index:1;}
+.card-logo .dot-orange{display:inline-block;width:12px;height:12px;background:#FF6B00;border-radius:50% 50% 50% 0;transform:rotate(-45deg);margin-right:5px;vertical-align:middle;position:relative;top:-2px;}
+.card-logo .dot-purple{display:inline-block;width:12px;height:12px;background:#7C3AED;border-radius:50% 50% 0 50%;transform:rotate(45deg);margin-right:5px;vertical-align:middle;position:relative;top:-2px;}
+
+.card-desc{font-size:13px;color:#888;line-height:1.6;position:relative;z-index:1;}
+
+.card-bottom{padding:20px 36px;border-top:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;}
+.card-bottom-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
+.card-bottom-label.orange{color:#FF6B00;}
+.card-bottom-label.purple{color:#A855F7;}
+.card-arrow{font-size:20px;transition:transform .2s;}
+.card:hover .card-arrow{transform:translateX(5px);}
+
+.features{display:flex;flex-direction:column;gap:6px;margin-top:14px;position:relative;z-index:1;}
+.feature{display:flex;align-items:center;gap:7px;font-size:11px;color:#777;}
+.feature::before{content:'✓';font-weight:700;font-size:12px;}
+.feature.orange::before{color:#FF6B00;}
+.feature.purple::before{color:#A855F7;}
+
+.footer{margin-top:48px;text-align:center;font-size:12px;color:#444;}
+.footer a{color:#666;text-decoration:none;}
+.footer a:hover{color:#888;}
+</style>
+</head>
+<body>
+
+<div class="logo-area">
+  <div class="logo-lt">LemonTech · Herramientas Comerciales</div>
+  <div class="headline">Generadores de<br/><span>Propuestas</span></div>
+  <div class="sub">Selecciona el producto para crear tu cotización</div>
+</div>
+
+<div class="cards">
+
+  <!-- CASETRACKING -->
+  <a class="card" href="CaseTracking_Propuesta.html">
+    <div class="card-top orange">
+      <svg class="card-wave" width="180" height="140" viewBox="0 0 180 140" fill="none">
+        <path d="M180 0 C140 50,100 30,130 90 C158 135,180 115,180 140 L180 0Z" fill="#FF6B00" opacity="0.15"/>
+        <path d="M180 0 C155 30,130 20,155 65 C172 95,180 82,180 110 L180 0Z" fill="#FF6B00" opacity="0.25"/>
+      </svg>
+      <div class="card-badge orange">Software Judicial N°1 LATAM</div>
+      <div class="card-logo">
+        <span class="dot-orange"></span>Case<span style="color:#FF6B00;">Tracking</span>
+        <div style="font-size:12px;font-weight:400;color:#666;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">by LemonTech</div>
+      </div>
+      <div class="card-desc">Gestión y seguimiento judicial automatizado para equipos legales y estudios de abogados.</div>
+      <div class="features">
+        <div class="feature orange">Calculadora ROI judicial</div>
+        <div class="feature orange">Dolores del cliente manuales</div>
+        <div class="feature orange">Propuesta con y sin oferta</div>
+        <div class="feature orange">Página de firma con T&C</div>
+      </div>
+    </div>
+    <div class="card-bottom">
+      <span class="card-bottom-label orange">Abrir generador</span>
+      <span class="card-arrow">→</span>
+    </div>
+  </a>
+
+  <!-- LEMONFLOW -->
+  <a class="card" href="LemonFlow_Propuesta.html">
+    <div class="card-top purple">
+      <svg class="card-wave" width="180" height="140" viewBox="0 0 180 140" fill="none">
+        <path d="M180 0 C140 50,100 30,130 90 C158 135,180 115,180 140 L180 0Z" fill="#7C3AED" opacity="0.18"/>
+        <path d="M180 0 C155 30,130 20,155 65 C172 95,180 82,180 110 L180 0Z" fill="#9D5CF5" opacity="0.28"/>
+      </svg>
+      <div class="card-badge purple">Gestión Legal In-House</div>
+      <div class="card-logo">
+        <span class="dot-purple"></span>Lemon<span style="color:#A855F7;">Flow</span>
+        <div style="font-size:12px;font-weight:400;color:#666;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">by LemonTech</div>
+      </div>
+      <div class="card-desc">Software de compliance, ticketing e IA para gerencias legales y departamentos jurídicos.</div>
+      <div class="features">
+        <div class="feature purple">Calculadora ROI Compliance (metodología oficial)</div>
+        <div class="feature purple">Multiplicador por industria</div>
+        <div class="feature purple">Módulos Compliance + Ticketing</div>
+        <div class="feature purple">Página de firma con T&C LIA</div>
+      </div>
+    </div>
+    <div class="card-bottom">
+      <span class="card-bottom-label purple">Abrir generador</span>
+      <span class="card-arrow">→</span>
+    </div>
+  </a>
+
+</div>
+
+<div class="footer">
+  <a href="https://www.lemontech.com">www.lemontech.com</a> &nbsp;·&nbsp;
+  <a href="mailto:ventas@lemontech.com">ventas@lemontech.com</a>
+</div>
+
+</body>
+</html>
