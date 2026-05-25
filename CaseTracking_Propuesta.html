@@ -59,11 +59,7 @@ body{font-family:'Barlow',sans-serif;background:#111;color:var(--white);min-heig
 .toggle-switch input[type=checkbox]{accent-color:var(--orange);width:16px;height:16px;cursor:pointer;}
 .roi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-/* DIIO BOX */
-.diio-box{background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:12px;font-size:11px;color:var(--gray-lt);line-height:1.6;}
-.diio-box strong{color:var(--orange);}
-.diio-parse-btn{background:var(--orange);color:#fff;border:none;border-radius:5px;padding:8px 14px;font-family:'Barlow',sans-serif;font-weight:700;font-size:12px;cursor:pointer;width:100%;margin-top:6px;letter-spacing:.5px;}
-.diio-parse-btn:hover{background:var(--orange-lt);}
+
 
 /* PREVIEW */
 .preview-panel{background:#0e0e0e;overflow-y:auto;padding:32px;display:flex;flex-direction:column;align-items:center;gap:28px;}
@@ -255,21 +251,16 @@ body{font-family:'Barlow',sans-serif;background:#111;color:var(--white);min-heig
     </div>
   </div>
 
-  <!-- DOLORES — con integración Diio -->
+  <!-- DOLORES -->
   <div class="form-section">
     <div class="form-section-header" onclick="toggleSection(this)">🩺 Dolores del Cliente <span class="toggle">▾</span></div>
     <div class="form-section-body">
-      <div class="diio-box">
-        <strong>⚡ Importar desde Diio</strong><br/>
-        Pega aquí el resumen de reunión generado por Diio y los dolores se crearán automáticamente con su solución CaseTracking.
+      <div style="background:#1a1200;border:1px solid #443300;border-radius:6px;padding:10px 12px;font-size:11px;color:#cc9944;line-height:1.6;">
+        <strong style="color:#ffaa44;">💡 Cómo completar</strong><br/>
+        Por cada dolor identifica: <strong style="color:#fff;">(1)</strong> el problema que tiene el cliente y <strong style="color:#fff;">(2)</strong> cómo CaseTracking lo resuelve. Puedes agregar hasta 6.
       </div>
-      <div class="field"><label>Resumen Diio (pega aquí)</label>
-        <textarea id="diioText" rows="5" placeholder="Pega el texto de tu reunión Diio aquí... El sistema identificará automáticamente los dolores y generará cómo CaseTracking los soluciona."></textarea>
-      </div>
-      <button class="diio-parse-btn" onclick="parseDiio()">⚡ Generar dolores desde Diio con IA</button>
-      <div style="height:1px;background:#333;margin:4px 0;"></div>
       <div id="painContainer"></div>
-      <button class="btn-add" onclick="addPain()">+ Agregar dolor manualmente</button>
+      <button class="btn-add" onclick="addPain()">+ Agregar dolor del cliente</button>
     </div>
   </div>
 
@@ -719,11 +710,7 @@ body{font-family:'Barlow',sans-serif;background:#111;color:var(--white);min-heig
 /* =========================================================
    STATE
    ========================================================= */
-let pains = [
-  {text:'El equipo pierde horas revisando portales judiciales manualmente.', solution:'Actualización automática de causas desde portales judiciales de LATAM.'},
-  {text:'Falta de visibilidad centralizada sobre el estado de los procesos.', solution:'Dashboard unificado con el 100% de causas activas, congeladas y archivadas.'},
-  {text:'Riesgo de vencer plazos por falta de alertas automáticas.', solution:'Notificaciones automáticas por correo ante vencimientos y movimientos clave.'}
-];
+let pains = [];
 let roiState = {};
 
 /* =========================================================
@@ -753,15 +740,26 @@ function toggleSection(h){
 function renderPainInputs(){
   const c = document.getElementById('painContainer');
   c.innerHTML='';
+  if(pains.length===0){
+    c.innerHTML='<div style="color:#555;font-size:12px;text-align:center;padding:16px 0;">Haz click en el botón de abajo para agregar el primer dolor.</div>';
+    return;
+  }
   pains.forEach((p,i)=>{
     const row=document.createElement('div');
-    row.style.cssText='background:#1c1c1c;border:1px solid #333;border-radius:6px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;';
+    row.style.cssText='background:#1c1c1c;border:1px solid #3a3a3a;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;';
     row.innerHTML=`
-      <div style="display:flex;gap:6px;align-items:flex-start;">
-        <textarea style="flex:1;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:7px 10px;resize:vertical;min-height:48px;" placeholder="Dolor del cliente..." oninput="pains[${i}].text=this.value;updatePreview()">${escHtml(p.text)}</textarea>
-        <button class="btn-del" onclick="removePain(${i})">✕</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--orange);letter-spacing:1px;">DOLOR #${i+1}</span>
+        <button class="btn-del" onclick="removePain(${i})" title="Eliminar este dolor">✕</button>
       </div>
-      <textarea style="background:#1a1200;border:1px solid #443300;border-radius:4px;color:#ffaa44;font-family:'Barlow',sans-serif;font-size:11px;padding:6px 10px;resize:vertical;min-height:38px;" placeholder="Cómo CaseTracking lo soluciona..." oninput="pains[${i}].solution=this.value;updatePreview()">${escHtml(p.solution)}</textarea>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin-bottom:4px;">😣 Problema del cliente</div>
+        <textarea style="width:100%;background:#1a1a1a;border:1px solid #444;border-radius:5px;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:8px 10px;resize:vertical;min-height:56px;line-height:1.5;" placeholder="Ej: El equipo dedica horas revisando manualmente los portales judiciales cada día, sin poder centralizar la información..." oninput="pains[${i}].text=this.value;updatePreview()">${escHtml(p.text)}</textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#ff8c38;margin-bottom:4px;">✅ Cómo lo resuelve CaseTracking</div>
+        <textarea style="width:100%;background:#1a1200;border:1px solid #553300;border-radius:5px;color:#ffcc88;font-family:'Barlow',sans-serif;font-size:12px;padding:8px 10px;resize:vertical;min-height:46px;line-height:1.5;" placeholder="Ej: Actualización automática desde portales judiciales de 8 países LATAM, con alertas diarias por correo..." oninput="pains[${i}].solution=this.value;updatePreview()">${escHtml(p.solution)}</textarea>
+      </div>
     `;
     c.appendChild(row);
   });
@@ -779,54 +777,7 @@ function removePain(i){
   updatePreview();
 }
 
-/* =========================================================
-   DIIO PARSER — calls Anthropic API to extract pains
-   ========================================================= */
-async function parseDiio(){
-  const text = document.getElementById('diioText').value.trim();
-  if(!text){alert('Pega el resumen de Diio primero.');return;}
-  const btn = document.querySelector('.diio-parse-btn');
-  btn.textContent='⏳ Analizando con IA...';
-  btn.disabled=true;
-  try{
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`Eres un experto en ventas de software legal. Analiza el texto de una reunión de ventas y extrae los dolores del cliente. Responde SOLO con JSON válido, sin markdown, sin backticks, sin texto adicional. Formato: {"pains":[{"text":"dolor del cliente en 1 oración clara","solution":"cómo CaseTracking lo soluciona en 1 oración"}]}. Máximo 6 dolores. Los dolores deben ser específicos y reales basados en el texto. Las soluciones deben mencionar funcionalidades concretas de CaseTracking.`,
-        messages:[{role:'user',content:`Texto de la reunión:\n\n${text}`}]
-      })
-    });
-    if(!res.ok){
-      const errData=await res.json().catch(()=>({}));
-      throw new Error(errData?.error?.message||'HTTP '+res.status);
-    }
-    const data = await res.json();
-    const raw = data.content.find(b=>b.type==='text')?.text||'{}';
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    if(parsed.pains && Array.isArray(parsed.pains)){
-      pains = parsed.pains;
-      renderPainInputs();
-      updatePreview();
-      btn.textContent='✅ ¡Dolores generados!';
-      setTimeout(()=>{btn.textContent='⚡ Generar dolores desde Diio con IA';btn.disabled=false;},2000);
-    } else {
-      throw new Error('Formato inesperado');
-    }
-  }catch(e){
-    console.error('Diio error:',e);
-    btn.textContent='⚡ Generar dolores desde Diio con IA';
-    btn.disabled=false;
-    alert('Error: '+e.message+'\n\nSi el problema persiste, agrega los dolores manualmente.');
-  }
-}
+
 
 /* =========================================================
    ROI
