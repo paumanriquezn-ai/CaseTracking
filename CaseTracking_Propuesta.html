@@ -791,7 +791,11 @@ async function parseDiio(){
   try{
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:1000,
@@ -799,9 +803,14 @@ async function parseDiio(){
         messages:[{role:'user',content:`Texto de la reunión:\n\n${text}`}]
       })
     });
+    if(!res.ok){
+      const errData=await res.json().catch(()=>({}));
+      throw new Error(errData?.error?.message||'HTTP '+res.status);
+    }
     const data = await res.json();
     const raw = data.content.find(b=>b.type==='text')?.text||'{}';
-    const parsed = JSON.parse(raw);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
     if(parsed.pains && Array.isArray(parsed.pains)){
       pains = parsed.pains;
       renderPainInputs();
@@ -812,10 +821,10 @@ async function parseDiio(){
       throw new Error('Formato inesperado');
     }
   }catch(e){
-    console.error(e);
+    console.error('Diio error:',e);
     btn.textContent='⚡ Generar dolores desde Diio con IA';
     btn.disabled=false;
-    alert('No se pudo analizar el texto. Verifica que pegaste el resumen correctamente.');
+    alert('Error: '+e.message+'\n\nSi el problema persiste, agrega los dolores manualmente.');
   }
 }
 
