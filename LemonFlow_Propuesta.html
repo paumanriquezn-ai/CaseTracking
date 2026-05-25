@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LemonFlow — Generador de Propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --purple:#7C3AED;--purple-lt:#9D5CF5;--purple-dk:#5B21B6;
+  --purple-bg:#2D1B69;--accent:#A855F7;
+  --dark:#18181B;--dark2:#1E1E24;--dark3:#27272E;
+  --gray:#3F3F46;--gray-lt:#A1A1AA;--white:#FFFFFF;
+  --page-w:794px;--page-h:1123px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:#111;color:var(--white);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
+.app-header{background:var(--dark);border-bottom:2px solid var(--purple);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+.app-header .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;}
+.app-header .logo-text span{color:var(--purple-lt);}
+.app-header .badge{background:var(--purple);color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:3px;text-transform:uppercase;}
+.header-actions{margin-left:auto;display:flex;gap:10px;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:5px;font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-primary:hover{background:var(--purple-lt);transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,58,237,.4);}
+.btn-outline{background:transparent;color:#fff;border:1.5px solid #444;}
+.btn-outline:hover{border-color:var(--purple-lt);color:var(--purple-lt);}
+.btn-sm{padding:7px 14px;font-size:12px;}
+
+.app-body{display:grid;grid-template-columns:420px 1fr;flex:1;min-height:0;}
+
+/* SIDEBAR */
+.sidebar{background:var(--dark2);border-right:1px solid #333;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;}
+.form-section{background:var(--dark3);border:1px solid #3a3a3a;border-radius:8px;overflow:hidden;}
+.form-section-header{background:var(--gray);padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple-lt);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.form-section-header .toggle{margin-left:auto;transition:transform .2s;}
+.form-section-header.collapsed .toggle{transform:rotate(-90deg);}
+.form-section-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.form-section-body.hidden{display:none;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-lt);}
+.field input,.field textarea,.field select{background:#1a1a1a;border:1px solid #444;border-radius:5px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:9px 12px;transition:border-color .15s;width:100%;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--purple-lt);}
+.field textarea{resize:vertical;min-height:72px;}
+.field select option{background:#222;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-del{background:#3a1010;border:1px solid #662020;color:#ff6b6b;border-radius:5px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.btn-del:hover{background:#5a1a1a;}
+.btn-add{background:#1a1a2e;border:1px dashed #5B21B6;color:#A855F7;border-radius:5px;padding:8px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;width:100%;text-align:center;}
+.btn-add:hover{background:#221a3a;}
+.plan-card{background:#1c1c1c;border:1px solid #3a3a3a;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.plan-card-header{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--purple-lt);text-transform:uppercase;}
+.toggle-switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-lt);}
+.toggle-switch input[type=checkbox]{accent-color:var(--purple);width:16px;height:16px;cursor:pointer;}
+
+/* PREVIEW */
+.preview-panel{background:#0e0e0e;overflow-y:auto;padding:32px;display:flex;flex-direction:column;align-items:center;gap:28px;}
+.preview-actions{display:flex;align-items:center;gap:10px;align-self:flex-end;}
+.preview-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gray-lt);}
+
+/* PDF PAGE BASE */
+.pdf-page{width:var(--page-w);min-height:var(--page-h);background:var(--dark);position:relative;overflow:hidden;box-shadow:0 8px 48px rgba(0,0,0,.7);flex-shrink:0;}
+.wave-purple{position:absolute;pointer-events:none;z-index:0;}
+
+/* PAGE 1 — COVER */
+#page-cover{background:#18181B;display:flex;flex-direction:column;}
+.cover-badges{position:relative;z-index:2;padding:36px 48px 0;display:flex;align-items:center;gap:24px;}
+.cover-badge-item{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--gray-lt);letter-spacing:.5px;}
+.cover-badge-icon{width:44px;height:44px;border:1.5px solid #555;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.cover-content{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 48px 60px;}
+.cover-tag{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--purple-lt);margin-bottom:12px;}
+.cover-for-label{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:var(--gray-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.cover-client-name{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;text-transform:uppercase;color:var(--purple-lt);line-height:1;margin-bottom:20px;}
+.cover-title{font-family:'Barlow Condensed',sans-serif;font-size:60px;font-weight:900;line-height:.92;text-transform:uppercase;color:var(--white);margin-bottom:20px;letter-spacing:-1px;}
+.cover-divider{width:120px;height:3px;background:var(--purple);margin:0 auto 24px;}
+.cover-meta{display:flex;gap:36px;justify-content:center;font-size:12px;color:var(--gray-lt);}
+.cover-meta strong{color:#fff;display:block;font-size:13px;}
+.cover-logo-bottom{position:absolute;bottom:36px;right:48px;z-index:2;text-align:right;}
+.cover-logo-bottom .logo-lg{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;}
+.cover-logo-bottom .logo-lg .by{font-size:12px;color:var(--gray-lt);display:block;font-weight:400;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.lf-dot{display:inline-block;width:16px;height:16px;background:var(--purple);border-radius:50% 50% 0 50%;transform:rotate(45deg);margin-right:6px;vertical-align:middle;position:relative;top:-2px;}
+
+/* PAGE 2 — PAIN */
+#page-pain{background:#18181B;display:flex;flex-direction:column;}
+.page-header-bar{padding:40px 52px 0;display:flex;flex-direction:column;gap:4px;}
+.page-num{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--purple-lt);}
+.page-main-title{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;text-transform:uppercase;line-height:.9;color:#fff;margin-top:6px;}
+.page-sub-title{font-size:14px;color:var(--gray-lt);margin-top:10px;font-weight:300;max-width:500px;line-height:1.5;}
+.pain-divider{width:60px;height:3px;background:var(--purple);margin:16px 52px;}
+.pain-list{padding:0 52px;display:flex;flex-direction:column;gap:12px;flex:1;}
+.pain-item{display:grid;grid-template-columns:38px 1fr;gap:14px;align-items:start;background:#222;border:1px solid #333;border-left:3px solid var(--purple);border-radius:6px;padding:14px 16px;}
+.pain-num{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;color:var(--purple-lt);opacity:.7;line-height:1;}
+.pain-text{font-size:13px;color:#fff;font-weight:500;line-height:1.4;margin-bottom:4px;}
+.pain-solution{font-size:11px;color:var(--purple-lt);font-weight:400;line-height:1.4;font-style:italic;}
+.pain-solution::before{content:'✓ LemonFlow: ';font-weight:700;font-style:normal;}
+.page-footer-bar{margin-top:auto;padding:18px 52px;border-top:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#555;}
+.page-footer-logo{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#444;}
+.page-footer-logo span{color:var(--purple-lt);opacity:.6;}
+
+/* PAGE 3 — ROI */
+#page-roi{background:#18181B;display:flex;flex-direction:column;}
+.roi-display-section{padding:0 52px;flex:1;}
+.roi-big-number{text-align:center;margin:16px 0;padding:20px;background:linear-gradient(135deg,#1e1340,#18181B);border:1px solid var(--purple);border-radius:10px;position:relative;overflow:hidden;}
+.roi-big-number::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(124,58,237,.1);}
+.roi-big-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-lt);margin-bottom:6px;}
+.roi-big-value{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:900;color:var(--purple-lt);line-height:1;}
+.roi-big-sub{font-size:11px;color:var(--gray-lt);margin-top:4px;}
+.roi-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+.roi-card{background:#222;border:1px solid #333;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;}
+.roi-card-icon{font-size:18px;}
+.roi-card-label{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-lt);}
+.roi-card-value{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--purple-lt);}
+.roi-card-desc{font-size:10px;color:var(--gray-lt);line-height:1.4;}
+.roi-formula-box{background:#222;border:1px solid #333;border-radius:8px;padding:12px 16px;font-size:10px;color:var(--gray-lt);line-height:1.7;}
+.roi-formula-box strong{color:#fff;}
+.roi-industry-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.roi-chip{background:#2a1a4a;border:1px solid var(--purple-dk);border-radius:20px;padding:3px 10px;font-size:10px;color:var(--purple-lt);}
+
+/* PAGE 4 — PRICING */
+#page-pricing{background:#18181B;display:flex;flex-direction:column;}
+.pricing-body{padding:0 52px;flex:1;display:flex;flex-direction:column;gap:14px;}
+.pricing-intro{font-size:13px;color:var(--gray-lt);line-height:1.6;max-width:560px;}
+.pricing-table{width:100%;border-collapse:collapse;font-size:12px;}
+.pricing-table th{background:var(--purple);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;text-align:left;}
+.pricing-table td{padding:10px 14px;border-bottom:1px solid #2e2e2e;color:#fff;font-size:12px;}
+.pricing-table tr:nth-child(even) td{background:#222;}
+.pricing-table tr:last-child td{border-bottom:none;}
+.pricing-table .total-row td{background:#2a1a4a;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--purple-lt);border-top:2px solid var(--purple);}
+.price-highlight{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--purple-lt);}
+.addons-table{width:100%;border-collapse:collapse;font-size:11px;}
+.addons-table th{background:#2a1a4a;color:var(--purple-lt);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;text-align:left;}
+.addons-table td{padding:8px 12px;border-bottom:1px solid #2a2a2a;color:var(--gray-lt);}
+.includes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.include-item{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--gray-lt);line-height:1.4;}
+.include-item::before{content:'✓';color:var(--purple-lt);font-weight:700;flex-shrink:0;margin-top:1px;}
+.note-box{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:10px 14px;font-size:11px;color:var(--gray-lt);line-height:1.6;}
+.note-box strong{color:var(--purple-lt);}
+.offer-valid-box{background:linear-gradient(135deg,#1e1340,#18181B);border:2px solid var(--purple);border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.offer-valid-label{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--purple-lt);}
+.offer-valid-date{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#fff;}
+.offer-valid-sub{font-size:10px;color:var(--gray-lt);}
+
+/* PAGE 5 — DISCOUNT */
+#page-discount{background:#18181B;display:flex;flex-direction:column;}
+.discount-hero{margin:0 52px 16px;background:linear-gradient(135deg,#1e1340,#18181B);border:1px solid var(--purple);border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:20px;}
+.discount-badge{background:var(--purple);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;padding:10px 18px;border-radius:8px;line-height:1;flex-shrink:0;white-space:pre-line;text-align:center;}
+.discount-info h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;margin-bottom:4px;}
+.discount-info p{font-size:12px;color:var(--gray-lt);line-height:1.5;}
+.crossed{text-decoration:line-through;color:#666;font-size:12px;}
+
+/* PAGE 6 — SIGNATURE */
+#page-signature{background:#f8f8f8;display:flex;flex-direction:column;color:#111;}
+.sig-header{background:#18181B;padding:36px 52px 28px;position:relative;overflow:hidden;}
+.sig-body{padding:28px 52px;flex:1;display:flex;flex-direction:column;gap:18px;}
+.sig-section-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1a1a1a;border-bottom:2px solid var(--purple);padding-bottom:6px;margin-bottom:2px;}
+.tc-item{display:flex;align-items:flex-start;gap:10px;font-size:11px;color:#333;line-height:1.5;padding:8px 12px;background:#fff;border:1px solid #e0e0e0;border-radius:5px;}
+.tc-check{width:16px;height:16px;border:2px solid #ccc;border-radius:3px;flex-shrink:0;margin-top:1px;}
+.tc-link{color:var(--purple);text-decoration:underline;font-weight:600;}
+.sig-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.sig-party-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555;}
+.sig-line{height:1px;background:#333;margin-top:44px;}
+.sig-line-label{font-size:10px;color:#888;margin-top:4px;}
+.sig-field{font-size:11px;color:#555;line-height:1.6;}
+.sig-field strong{color:#111;display:block;font-size:12px;}
+.sig-date-box{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:12px 16px;font-size:11px;color:#555;display:flex;justify-content:space-between;align-items:center;}
+.sig-footer{background:#18181B;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#555;}
+.sig-footer .logo{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#444;}
+.sig-footer .logo span{color:var(--purple-lt);opacity:.6;}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading-overlay.active{display:flex;}
+.loading-spinner{width:48px;height:48px;border:4px solid #333;border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#fff;letter-spacing:1px;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:#111;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--purple);}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generando PDF...</div>
+</div>
+
+<header class="app-header">
+  <span class="lf-dot"></span>
+  <div class="logo-text">Lemon<span>Flow</span></div>
+  <div class="badge">Generador de Propuestas</div>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="updatePreview()">↻ Actualizar</button>
+    <button class="btn btn-primary" onclick="downloadPDF()">⬇ Descargar PDF</button>
+  </div>
+</header>
+
+<div class="app-body">
+<aside class="sidebar">
+
+  <!-- AM -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">👤 Account Manager <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field-row">
+        <div class="field"><label>Nombre</label><input type="text" id="amName" placeholder="Tu nombre" oninput="updatePreview()"/></div>
+        <div class="field"><label>Correo</label><input type="email" id="amEmail" placeholder="email@lemontech.com" oninput="updatePreview()"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Fecha emisión</label><input type="date" id="fechaEmision" oninput="updatePreview()"/></div>
+        <div class="field"><label>Fecha vencimiento</label><input type="date" id="fechaVencimiento" oninput="updatePreview()"/></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">🏢 Cliente <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field"><label>Nombre empresa *</label><input type="text" id="clientName" placeholder="Ej: Falabella" oninput="updatePreview()"/></div>
+      <div class="field-row">
+        <div class="field"><label>Contacto</label><input type="text" id="clientContact" placeholder="Nombre contacto" oninput="updatePreview()"/></div>
+        <div class="field"><label>RUT / Tax ID</label><input type="text" id="clientRut" placeholder="12.345.678-9" oninput="updatePreview()"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>País</label>
+          <select id="clientCountry" onchange="updatePreview()">
+            <option>Chile</option><option>México</option><option>Colombia</option>
+            <option>Perú</option><option>Argentina</option><option>Ecuador</option>
+            <option>Uruguay</option><option>Costa Rica</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="field"><label>Industria</label>
+          <select id="clientIndustry" onchange="calcROI();updatePreview()">
+            <option value="1.0">Tecnología (×1.0)</option>
+            <option value="1.1">Retail (×1.1)</option>
+            <option value="1.15">Manufactura (×1.15)</option>
+            <option value="1.15">Construcción (×1.15)</option>
+            <option value="1.2">Energía (×1.2)</option>
+            <option value="1.2">Alimentos y bebidas (×1.2)</option>
+            <option value="1.25">Minería (×1.25)</option>
+            <option value="1.30">Finanzas y seguros (×1.3)</option>
+            <option value="1.35">Salud y farmacéutica (×1.35)</option>
+            <option value="1.1">Otra (×1.1)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Módulo(s) contratados</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray-lt);text-transform:none;letter-spacing:0;">
+            <input type="checkbox" id="modCompliance" checked onchange="updatePreview()" style="accent-color:var(--purple);"/> Módulo de Compliance
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray-lt);text-transform:none;letter-spacing:0;">
+            <input type="checkbox" id="modTicketing" onchange="updatePreview()" style="accent-color:var(--purple);"/> Módulo de Ticketing
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOLORES -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">🩺 Dolores del Cliente <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div style="background:#1a1040;border:1px solid #3d2a6a;border-radius:6px;padding:10px 12px;font-size:11px;color:#aa88cc;line-height:1.6;">
+        <strong style="color:#c4a0e8;">💡 Cómo completar</strong><br/>
+        Por cada dolor identifica: <strong style="color:#fff;">(1)</strong> el problema y <strong style="color:#fff;">(2)</strong> cómo LemonFlow lo resuelve.
+      </div>
+      <div id="painContainer"></div>
+      <button class="btn-add" onclick="addPain()">+ Agregar dolor del cliente</button>
+    </div>
+  </div>
+
+  <!-- ROI -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">📊 Calculadora ROI Compliance <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div style="font-size:11px;color:var(--gray-lt);background:#1a1040;border:1px solid #3d2a6a;border-radius:5px;padding:8px 10px;line-height:1.6;">
+        Metodología oficial LemonFlow: <strong style="color:#c4a0e8;">-70% riesgo jurídico · -40% trabajo manual · 3× resolución</strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>Contingencias/mes</label><input type="number" id="roiContingencias" value="10" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Horas compliance/mes</label><input type="number" id="roiHoras" value="80" min="1" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>% tareas manuales</label><input type="number" id="roiPctManual" value="65" min="1" max="100" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>% errores/retrabajo</label><input type="number" id="roiPctError" value="25" min="0" max="100" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Multas último año (USD)</label><input type="number" id="roiMultas" value="0" min="0" oninput="calcROI();updatePreview()"/></div>
+        <div class="field"><label>Moneda</label>
+          <select id="roiMoneda" onchange="calcROI();updatePreview()">
+            <option>USD</option><option>CLP</option><option>MXN</option><option>COP</option><option>PEN</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:12px;font-size:12px;color:var(--gray-lt);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Ahorro eficiencia operativa:</span><strong id="roiAhorroEf" style="color:#fff;">$0</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Reducción riesgo legal:</span><strong id="roiAhorroRiesgo" style="color:var(--purple-lt);">$0</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Ahorro en multas:</span><strong id="roiAhorroMultas" style="color:#fff;">$0</strong></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid #333;padding-top:7px;margin-top:4px;"><span>Ahorro anual total estimado:</span><strong id="roiAnual" style="color:var(--purple-lt);font-size:15px;">$0</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICING -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">💰 Cotización <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field-row">
+        <div class="field"><label>Moneda</label>
+          <select id="pricingCurrency" onchange="updatePreview()">
+            <option>USD</option><option>CLP</option><option>MXN</option><option>UF</option><option>COP</option><option>PEN</option>
+          </select>
+        </div>
+        <div class="field"><label>Modalidad facturación</label>
+          <select id="pricingModality" onchange="updatePreview()">
+            <option>Trimestral</option><option>Semestral</option><option>Anual</option><option>Mensual</option>
+          </select>
+        </div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Plan Principal</div>
+        <div class="field-row">
+          <div class="field"><label>N° usuarios</label><input type="number" id="planQty" value="5" min="1" oninput="updatePreview()"/></div>
+          <div class="field"><label>Valor mensual base</label><input type="number" id="planPrice" value="800" min="0" oninput="updatePreview()"/></div>
+        </div>
+        <div class="field"><label>Implementación (único pago, 0 = gratis)</label><input type="number" id="planImpl" value="0" min="0" oninput="updatePreview()"/></div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Add-ons <span style="font-size:10px;font-weight:400;color:var(--gray-lt);text-transform:none;">(valor mensual base)</span></div>
+        <div class="toggle-switch" style="margin-bottom:6px;">
+          <input type="checkbox" id="addonCanal" onchange="updatePreview()"/>
+          <label for="addonCanal">Canal de Denuncias</label>
+          <input type="number" id="addonCanalPrice" value="200" min="0" style="width:80px;margin-left:auto;" oninput="updatePreview()"/>
+        </div>
+        <div class="toggle-switch" style="margin-bottom:6px;">
+          <input type="checkbox" id="addonIA" onchange="updatePreview()"/>
+          <label for="addonIA">IA Compliance (LIA)</label>
+          <input type="number" id="addonIAPrice" value="300" min="0" style="width:80px;margin-left:auto;" oninput="updatePreview()"/>
+        </div>
+        <div class="toggle-switch">
+          <input type="checkbox" id="addonOtro" onchange="updatePreview()"/>
+          <input type="text" id="addonOtroNombre" placeholder="Nombre add-on" style="flex:1;margin:0 6px;" oninput="updatePreview()"/>
+          <input type="number" id="addonOtroPrice" value="0" min="0" style="width:80px;" oninput="updatePreview()"/>
+        </div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-card-header">Oferta Especial (Página 5)</div>
+        <div style="font-size:11px;color:var(--gray-lt);margin-bottom:6px;line-height:1.5;">Ingresa el <strong style="color:#fff;">valor final con oferta</strong> por ítem (mensual). Dejar vacío = sin cambio.</div>
+        <div class="field"><label>Valor final Plan (mensual)</label><input type="number" id="discountPlanFinal" placeholder="Ej: 600" oninput="updatePreview()"/></div>
+        <div id="discountAddonFields"></div>
+        <div class="field" style="margin-top:4px;"><label>Nombre / Motivo de la oferta</label><input type="text" id="discountReason" placeholder="Piloto, Early bird..." oninput="updatePreview()"/></div>
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field"><label>Inicio suscripción</label><input type="date" id="planStart" oninput="updatePreview()"/></div>
+          <div class="field"><label>Fin suscripción</label><input type="date" id="planEnd" oninput="updatePreview()"/></div>
+        </div>
+      </div>
+      <div class="field"><label>Incluido en el precio (separar con comas)</label>
+        <textarea id="planIncludes" rows="3" oninput="updatePreview()">Implementación gratis, Usuarios ilimitados, Soporte personalizado, Capacitación inicial, Actualización automática, Reuniones de seguimiento, Backup diario, 99.5% disponibilidad, ISO 27001</textarea>
+      </div>
+      <div class="field"><label>Condiciones particulares</label>
+        <textarea id="pricingNotes" rows="2" placeholder="IVA no incluido..." oninput="updatePreview()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="form-section">
+    <div class="form-section-header" onclick="toggleSection(this)">✍️ Página de Firma <span class="toggle">▾</span></div>
+    <div class="form-section-body">
+      <div class="field"><label>Nombre firmante cliente</label><input type="text" id="sigClientName" placeholder="Nombre completo" oninput="updatePreview()"/></div>
+      <div class="field"><label>Cargo firmante cliente</label><input type="text" id="sigClientRole" placeholder="Gerente Legal, Director..." oninput="updatePreview()"/></div>
+      <div class="field"><label>Lugar de firma</label><input type="text" id="sigPlace" placeholder="Santiago, Chile" oninput="updatePreview()"/></div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- PREVIEW -->
+<main class="preview-panel">
+  <div class="preview-actions">
+    <span class="preview-label">Vista Previa</span>
+    <button class="btn btn-outline btn-sm" onclick="updatePreview()">↻ Actualizar</button>
+    <button class="btn btn-primary btn-sm" onclick="downloadPDF()">⬇ PDF</button>
+  </div>
+
+  <div id="pagesContainer">
+
+    <!-- PAGE 1: COVER -->
+    <div class="pdf-page" id="page-cover">
+      <svg class="wave-purple" style="top:0;right:0;width:340px;height:260px;" viewBox="0 0 340 260" fill="none">
+        <path d="M340 0 C280 80,200 60,260 160 C310 230,340 200,340 260 L340 0Z" fill="#7C3AED" opacity="0.18"/>
+        <path d="M340 0 C300 50,240 40,290 110 C330 165,340 150,340 200 L340 0Z" fill="#7C3AED" opacity="0.28"/>
+        <path d="M340 0 C320 30,290 20,315 70 C330 100,340 90,340 130 L340 0Z" fill="#9D5CF5" opacity="0.4"/>
+      </svg>
+      <svg class="wave-purple" style="bottom:0;left:0;width:100%;height:300px;" viewBox="0 0 794 300" fill="none">
+        <path d="M0 300 C100 200,300 270,500 210 C650 160,750 210,794 190 L794 300Z" fill="#7C3AED" opacity="0.15"/>
+        <path d="M0 300 C80 230,200 285,400 250 C580 215,700 250,794 230 L794 300Z" fill="#7C3AED" opacity="0.22"/>
+        <path d="M0 300 C60 270,160 295,320 278 C480 262,620 285,794 265 L794 300Z" fill="#9D5CF5" opacity="0.35"/>
+      </svg>
+      <div class="cover-badges">
+        <div class="cover-badge-item"><div class="cover-badge-icon">🏆</div><div>Chambers LawTech<br/>2022 · Banda 1</div></div>
+        <div class="cover-badge-item"><div class="cover-badge-icon" style="font-size:10px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">AKKR</div><div>Accel-KKR Backed</div></div>
+        <div class="cover-badge-item"><div class="cover-badge-icon">🔒</div><div>ISO/IEC 27001</div></div>
+      </div>
+      <div class="cover-content">
+        <div class="cover-tag">Propuesta Comercial</div>
+        <div class="cover-for-label">Preparada para</div>
+        <div class="cover-client-name" id="cv-clientName">NOMBRE CLIENTE</div>
+        <div class="cover-title">GESTIÓN LEGAL<br/>INTELIGENTE<br/>IN-HOUSE</div>
+        <div class="cover-divider"></div>
+        <div class="cover-meta">
+          <div><strong id="cv-date">—</strong>Fecha de emisión</div>
+          <div><strong id="cv-exp">—</strong>Válida hasta</div>
+          <div><strong id="cv-am">—</strong>Account Manager</div>
+        </div>
+      </div>
+      <div class="cover-logo-bottom">
+        <div class="logo-lg">
+          <span class="lf-dot" style="width:12px;height:12px;"></span>
+          <span style="color:#fff;">Lemon</span><span style="color:var(--purple-lt);">Flow</span>
+          <span class="by">by LemonTech</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: PAIN -->
+    <div class="pdf-page" id="page-pain">
+      <svg class="wave-purple" style="top:0;right:0;width:180px;height:180px;" viewBox="0 0 180 180" fill="none">
+        <circle cx="160" cy="20" r="80" fill="#7C3AED" opacity="0.06"/>
+      </svg>
+      <div class="page-header-bar">
+        <div class="page-num">02 — Diagnóstico</div>
+        <div class="page-main-title">LOS DESAFÍOS DE<br/><span id="cv-clientName2" style="color:var(--purple-lt)">TU EMPRESA</span></div>
+        <div class="page-sub-title">Identificamos los siguientes puntos de dolor en tu operación legal y cómo LemonFlow los resuelve.</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pain-list" id="painListDisplay"></div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Lemon</span>Flow by LemonTech</div>
+        <div>2 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: ROI -->
+    <div class="pdf-page" id="page-roi">
+      <div class="page-header-bar">
+        <div class="page-num">03 — Retorno de Inversión</div>
+        <div class="page-main-title">TU POTENCIAL<br/>DE AHORRO</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="roi-display-section">
+        <div class="roi-big-number">
+          <div class="roi-big-label">Ahorro anual estimado con LemonFlow</div>
+          <div class="roi-big-value" id="disp-roiAnual">$0</div>
+          <div class="roi-big-sub" id="disp-roiSub">Basado en la metodología oficial LemonFlow · Multiplicador industria aplicado</div>
+        </div>
+        <div class="roi-cards">
+          <div class="roi-card">
+            <div class="roi-card-icon">⚖️</div>
+            <div class="roi-card-label">Reducción riesgo legal</div>
+            <div class="roi-card-value">70%</div>
+            <div class="roi-card-desc">Contingencias evitadas con IA y trazabilidad automática</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-icon">⏱</div>
+            <div class="roi-card-label">Menos trabajo manual</div>
+            <div class="roi-card-value">40%</div>
+            <div class="roi-card-desc">Horas liberadas automatizando gestión de normativas</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-icon">🚀</div>
+            <div class="roi-card-label">Más rápido resolviendo</div>
+            <div class="roi-card-value">3×</div>
+            <div class="roi-card-desc">Incidentes resueltos gracias a visualización en tiempo real</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="roi-card">
+            <div class="roi-card-label">Ahorro eficiencia operativa</div>
+            <div class="roi-card-value" id="disp-ahorroEf">$0</div>
+            <div class="roi-card-desc">-40% horas manuales × USD 50/hr</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-label">Reducción riesgo legal</div>
+            <div class="roi-card-value" id="disp-ahorroRiesgo">$0</div>
+            <div class="roi-card-desc">70% menos contingencias · mult. industria</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-card-label">Ahorro en multas</div>
+            <div class="roi-card-value" id="disp-ahorroMultas">$0</div>
+            <div class="roi-card-desc">70% reducción exposición regulatoria</div>
+          </div>
+        </div>
+        <div class="roi-formula-box">
+          <strong>¿Cómo se calcula?</strong><br/>
+          <span id="disp-formula1">Eficiencia: horas × % manual × 40% × USD 50/hr × 12 meses</span><br/>
+          Riesgo: contingencias × costo estimado × 70% reducción × multiplicador industria × 12<br/>
+          Multas: monto anual × 70% reducción | Total = eficiencia + riesgo + multas
+        </div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Lemon</span>Flow by LemonTech</div>
+        <div>3 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: PRICING FULL -->
+    <div class="pdf-page" id="page-pricing">
+      <div class="page-header-bar">
+        <div class="page-num">04 — Propuesta Económica</div>
+        <div class="page-main-title">INVERSIÓN<br/>REQUERIDA</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pricing-body">
+        <div class="pricing-intro" id="disp-pricingIntro"></div>
+        <div id="modulosActivos" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;"></div>
+        <table class="pricing-table" id="pricingTableFull">
+          <thead><tr><th>Ítem</th><th>Detalle</th><th>Valor mensual</th><th>Total periodo</th></tr></thead>
+          <tbody id="pricingTableBody"></tbody>
+        </table>
+        <div id="addonsSection" style="display:none;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--purple-lt);text-transform:uppercase;margin-bottom:5px;">Add-ons</div>
+          <table class="addons-table" id="addonsTableFull">
+            <thead><tr><th>Servicio</th><th>Valor mensual</th><th>Total periodo</th></tr></thead>
+            <tbody id="addonsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="implSection" style="display:none;background:#222;border:1px solid #333;border-radius:6px;padding:10px 14px;font-size:12px;">
+          <span style="color:var(--gray-lt);">Implementación (costo único):</span>
+          <strong id="disp-impl" style="color:#fff;float:right;"></strong>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--purple-lt);text-transform:uppercase;margin-bottom:7px;">Incluido en el precio</div>
+          <div class="includes-grid" id="includesGrid"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#222;border:1px solid #333;border-radius:6px;padding:12px 16px;">
+          <div style="font-size:11px;color:var(--gray-lt);">¿Listo para empezar? Escríbenos directamente.</div>
+          <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:700;color:var(--purple-lt);" id="disp-amEmail4">ventas@lemontech.com</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:3px;">www.lemontech.com</div>
+          </div>
+        </div>
+        <div class="note-box" id="notesBox" style="display:none;"><strong>Condiciones:</strong> <span id="disp-notes"></span></div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Lemon</span>Flow by LemonTech</div>
+        <div>4 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: DISCOUNT -->
+    <div class="pdf-page" id="page-discount">
+      <div class="page-header-bar">
+        <div class="page-num">05 — Propuesta Especial</div>
+        <div class="page-main-title">OFERTA<br/>EXCLUSIVA</div>
+      </div>
+      <div class="pain-divider"></div>
+      <div class="pricing-body">
+        <div class="discount-hero">
+          <div class="discount-badge" id="disp-discountBadge">OFERTA</div>
+          <div class="discount-info">
+            <h3 id="disp-discountTitle">Oferta Especial</h3>
+            <p id="disp-discountDesc">Condición exclusiva para este acuerdo comercial.</p>
+          </div>
+        </div>
+        <table class="pricing-table">
+          <thead><tr><th>Ítem</th><th>Precio regular</th><th>Precio oferta</th><th>Total periodo</th></tr></thead>
+          <tbody id="discountTableBody"></tbody>
+        </table>
+        <div style="background:linear-gradient(135deg,#1e1340,#18181B);border:1px solid var(--purple);border-radius:8px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-lt);margin-bottom:3px;">Total mensual con oferta</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--purple-lt);" id="disp-totalDiscount">$0</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gray-lt);">Vigencia del acuerdo</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;" id="disp-planPeriod">—</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:6px;">Precio regular:</div>
+            <div class="crossed" id="disp-totalRegular">$0</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--purple-lt);text-transform:uppercase;margin-bottom:7px;">Incluido en el precio</div>
+          <div class="includes-grid" id="includesGrid2"></div>
+        </div>
+        <div class="offer-valid-box">
+          <div>
+            <div class="offer-valid-label">⏰ Oferta vigente hasta</div>
+            <div class="offer-valid-date" id="disp-offerDate2">—</div>
+            <div class="offer-valid-sub">Vencida esta fecha, el precio aplicable será el indicado en la página anterior, salvo aprobación expresa de la dirección comercial de LemonTech.</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gray-lt);margin-bottom:4px;">¿Listo para empezar?</div>
+            <div style="font-size:13px;font-weight:700;color:var(--purple-lt);" id="disp-amEmail5">ventas@lemontech.com</div>
+            <div style="font-size:10px;color:var(--gray-lt);margin-top:4px;">www.lemontech.com</div>
+          </div>
+        </div>
+      </div>
+      <div class="page-footer-bar">
+        <div>www.lemontech.com</div>
+        <div class="page-footer-logo"><span>Lemon</span>Flow by LemonTech</div>
+        <div>5 / 6</div>
+      </div>
+    </div>
+
+    <!-- PAGE 6: SIGNATURE -->
+    <div class="pdf-page" id="page-signature">
+      <div class="sig-header" style="position:relative;overflow:hidden;">
+        <svg style="position:absolute;top:0;right:0;width:220px;height:140px;pointer-events:none;" viewBox="0 0 220 140" fill="none">
+          <path d="M220 0 C180 50,140 30,170 90 C195 135,220 120,220 140 L220 0Z" fill="#7C3AED" opacity="0.25"/>
+        </svg>
+        <div class="page-num">06 — Aceptación Comercial</div>
+        <div class="page-main-title" style="color:#fff;">TÉRMINOS Y<br/>CONDICIONES</div>
+        <div class="page-sub-title" style="color:#aaa;">Al firmar esta propuesta, el cliente declara haber leído y aceptar los siguientes términos y condiciones.</div>
+      </div>
+      <div class="sig-body">
+        <div>
+          <div class="sig-section-title">Resumen de la Propuesta</div>
+          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11px;color:#333;">
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Cliente</span><strong id="sig-clientName" style="color:#111;font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Plan</span><strong id="sig-plan" style="color:#111;font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Total mensual</span><strong id="sig-total" style="color:var(--purple);font-size:13px;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Vigencia oferta</span><strong id="sig-validDate" style="color:#111;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Modalidad</span><strong id="sig-modality" style="color:#111;">—</strong></div>
+            <div><span style="color:#888;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;">Account Manager</span><strong id="sig-am" style="color:#111;">—</strong></div>
+          </div>
+        </div>
+        <div>
+          <div class="sig-section-title">Términos y Condiciones Aceptados</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="tc-item"><div class="tc-check">□</div><div>He leído y acepto los <a class="tc-link" href="https://www.lemontech.com/legal/terminos-y-condiciones">Términos y Condiciones de Uso</a> de LemonTech / LemonFlow — www.lemontech.com/legal/terminos-y-condiciones</div></div>
+            <div class="tc-item"><div class="tc-check">□</div><div>He leído y acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-privacidad">Política de Privacidad</a> de LemonTech — www.lemontech.com/legal/politica-de-privacidad</div></div>
+            <div class="tc-item"><div class="tc-check">□</div><div>He leído y acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-seguridad-de-la-informacion">Política de Seguridad de la Información</a> — www.lemontech.com/legal/politica-de-seguridad-de-la-informacion</div></div>
+            <div class="tc-item"><div class="tc-check">□</div><div>Acepto la <a class="tc-link" href="https://www.lemontech.com/legal/politica-de-privacidad-lia-memory">Política de Privacidad LIA Memory</a> (aplica si se contrata módulo IA) — www.lemontech.com/legal/politica-de-privacidad-lia-memory</div></div>
+            <div class="tc-item"><div class="tc-check">□</div><div>Declaro que los datos entregados son fidedignos y que tengo facultades para obligar a mi organización en los términos aquí descritos.</div></div>
+            <div class="tc-item"><div class="tc-check">□</div><div>Entiendo que los precios no incluyen impuestos (IVA u otros) salvo indicación expresa, y que la oferta es válida hasta la fecha de vencimiento señalada.</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="sig-section-title">Firmas</div>
+          <div class="sig-parties">
+            <div>
+              <div class="sig-party-title">Por el Cliente</div>
+              <div style="height:48px;"></div>
+              <div class="sig-line"></div>
+              <div class="sig-line-label">Firma y Timbre</div>
+              <div style="margin-top:8px;" class="sig-field">
+                <strong id="sig-clientSignName">___________________________</strong>
+                <span id="sig-clientSignRole">Cargo</span>
+                <span id="sig-clientCompany" style="color:#888;font-size:10px;"></span>
+              </div>
+            </div>
+            <div>
+              <div class="sig-party-title">Por LemonTech / LemonFlow</div>
+              <div style="height:48px;"></div>
+              <div class="sig-line"></div>
+              <div class="sig-line-label">Firma Representante</div>
+              <div style="margin-top:8px;" class="sig-field">
+                <strong id="sig-amSignName">___________________________</strong>
+                <span>Account Manager</span>
+                <span style="color:#888;font-size:10px;">LemonTech SpA · ventas@lemontech.com</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sig-date-box">
+          <span>Lugar y fecha de firma:</span>
+          <strong id="sig-placeDate">_________________________, _____ de _____________ de _____</strong>
+        </div>
+      </div>
+      <div class="sig-footer">
+        <div>www.lemontech.com · ventas@lemontech.com</div>
+        <div class="logo"><span>Lemon</span>Flow by LemonTech</div>
+        <div>6 / 6</div>
+      </div>
+    </div>
+
+  </div><!-- /pagesContainer -->
+</main>
+</div>
+
+<script>
+let pains = [];
+let roiState = {};
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('fechaEmision').value=today;
+  const exp=new Date(); exp.setDate(exp.getDate()+15);
+  document.getElementById('fechaVencimiento').value=exp.toISOString().split('T')[0];
+  renderPainInputs();
+  calcROI();
+  updatePreview();
+});
+
+function toggleSection(h){h.classList.toggle('collapsed');h.nextElementSibling.classList.toggle('hidden');}
+
+/* PAINS */
+function renderPainInputs(){
+  const c=document.getElementById('painContainer');
+  c.innerHTML='';
+  if(!pains.length){
+    c.innerHTML='<div style="color:#555;font-size:12px;text-align:center;padding:16px 0;">Haz click en el botón de abajo para agregar el primer dolor.</div>';
+    return;
+  }
+  pains.forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='background:#1c1c1c;border:1px solid #3a3a3a;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;';
+    row.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--purple-lt);letter-spacing:1px;">DOLOR #${i+1}</span>
+        <button class="btn-del" onclick="removePain(${i})">✕</button>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin-bottom:4px;">😣 Problema del cliente</div>
+        <textarea style="width:100%;background:#1a1a1a;border:1px solid #444;border-radius:5px;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:8px 10px;resize:vertical;min-height:56px;line-height:1.5;" placeholder="Ej: El equipo legal dedica horas gestionando normativas en planillas Excel sin trazabilidad ni alertas automáticas..." oninput="pains[${i}].text=this.value;updatePreview()">${escHtml(p.text)}</textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--purple-lt);margin-bottom:4px;">✅ Cómo lo resuelve LemonFlow</div>
+        <textarea style="width:100%;background:#1a1040;border:1px solid #3d2a6a;border-radius:5px;color:#c4a0e8;font-family:'Barlow',sans-serif;font-size:12px;padding:8px 10px;resize:vertical;min-height:46px;line-height:1.5;" placeholder="Ej: Dashboard centralizado con seguimiento de normativas, flujos automatizados y alertas de vencimiento en tiempo real..." oninput="pains[${i}].solution=this.value;updatePreview()">${escHtml(p.solution)}</textarea>
+      </div>`;
+    c.appendChild(row);
+  });
+}
+
+function addPain(){pains.push({text:'',solution:''});renderPainInputs();updatePreview();}
+function removePain(i){pains.splice(i,1);renderPainInputs();updatePreview();}
+
+/* ROI */
+function calcROI(){
+  const contingencias=+document.getElementById('roiContingencias').value||0;
+  const horas=+document.getElementById('roiHoras').value||0;
+  const pctManual=(+document.getElementById('roiPctManual').value||0)/100;
+  const pctError=(+document.getElementById('roiPctError').value||0)/100;
+  const multas=+document.getElementById('roiMultas').value||0;
+  const moneda=document.getElementById('roiMoneda').value;
+  const industryEl=document.getElementById('clientIndustry');
+  const mult=parseFloat(industryEl.value)||1.0;
+
+  // Eficiencia: horas × % manual × 40% reducción × USD 50/hr × 12
+  const ahorroEf=horas*pctManual*0.40*50*12;
+  // Riesgo: contingencias × costo estimado por contingencia (USD 500 base) × 70% × mult × 12
+  const costoPorCont=500;
+  const ahorroRiesgo=contingencias*costoPorCont*0.70*mult*12;
+  // Multas: monto × 70%
+  const ahorroMultas=multas*0.70;
+  const total=ahorroEf+ahorroRiesgo+ahorroMultas;
+
+  roiState={ahorroEf,ahorroRiesgo,ahorroMultas,total,moneda,contingencias,horas,pctManual:pctManual*100,mult};
+
+  const fmt=n=>moneda+' '+n.toLocaleString('es-CL',{maximumFractionDigits:0});
+  document.getElementById('roiAhorroEf').textContent=fmt(ahorroEf);
+  document.getElementById('roiAhorroRiesgo').textContent=fmt(ahorroRiesgo);
+  document.getElementById('roiAhorroMultas').textContent=fmt(ahorroMultas);
+  document.getElementById('roiAnual').textContent=fmt(total);
+}
+
+/* MODALITY */
+function modalityMultiplier(mod){return mod==='Trimestral'?3:mod==='Semestral'?6:mod==='Anual'?12:1;}
+function modalityLabel(mod){return mod==='Trimestral'?'trimestre':mod==='Semestral'?'semestre':mod==='Anual'?'año':'mes';}
+
+function getVal(id,fallback){const el=document.getElementById(id);if(!el)return fallback;const v=parseFloat(el.value);return isNaN(v)||el.value===''?fallback:v;}
+
+function updateDiscountAddonFields(){
+  const canalOn=document.getElementById('addonCanal').checked;
+  const iaOn=document.getElementById('addonIA').checked;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const cont=document.getElementById('discountAddonFields');
+  let html='';
+  if(canalOn) html+=`<div class="field" style="margin-top:6px;"><label>Valor final Canal Denuncias (mensual)</label><input type="number" id="discountCanalFinal" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  if(iaOn)    html+=`<div class="field" style="margin-top:6px;"><label>Valor final LIA Compliance (mensual)</label><input type="number" id="discountIAFinal" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  if(otroOn)  html+=`<div class="field" style="margin-top:6px;"><label>Valor final ${escHtml(otroN)} (mensual)</label><input type="number" id="discountOtroFinal" placeholder="Dejar vacío = mismo precio" oninput="updatePreview()"/></div>`;
+  cont.innerHTML=html;
+}
+
+/* UPDATE PREVIEW */
+function updatePreview(){
+  const cn=document.getElementById('clientName').value||'TU EMPRESA';
+  const am=document.getElementById('amName').value||'—';
+  const amEmail=document.getElementById('amEmail').value||'ventas@lemontech.com';
+  const fe=formatDate(document.getElementById('fechaEmision').value);
+  const fv=formatDate(document.getElementById('fechaVencimiento').value);
+  const cur=document.getElementById('pricingCurrency').value;
+  const mod=document.getElementById('pricingModality').value;
+  const fmt=n=>cur+' '+n.toLocaleString('es-CL',{maximumFractionDigits:0});
+
+  // P1
+  document.getElementById('cv-clientName').textContent=cn.toUpperCase();
+  document.getElementById('cv-date').textContent=fe;
+  document.getElementById('cv-exp').textContent=fv;
+  document.getElementById('cv-am').textContent=am;
+
+  // P2
+  document.getElementById('cv-clientName2').textContent=cn.toUpperCase();
+  renderPainDisplay();
+
+  // P3
+  const roiFmt=n=>roiState.moneda+' '+n.toLocaleString('es-CL',{maximumFractionDigits:0});
+  document.getElementById('disp-roiAnual').textContent=roiFmt(roiState.total||0);
+  document.getElementById('disp-roiSub').textContent=`${roiState.contingencias||0} contingencias/mes · ${roiState.horas||0}h compliance · ${roiState.pctManual||0}% manual · Mult. industria ×${(roiState.mult||1).toFixed(2)}`;
+  document.getElementById('disp-ahorroEf').textContent=roiFmt(roiState.ahorroEf||0);
+  document.getElementById('disp-ahorroRiesgo').textContent=roiFmt(roiState.ahorroRiesgo||0);
+  document.getElementById('disp-ahorroMultas').textContent=roiFmt(roiState.ahorroMultas||0);
+  document.getElementById('disp-formula1').textContent=`Eficiencia: ${roiState.horas||0}h × ${roiState.pctManual||0}% × 40% reducción × USD 50/hr × 12 = ${roiFmt(roiState.ahorroEf||0)}`;
+
+  // P4 & P5
+  renderPricingPages(cur,mod,cn,amEmail,fv,fmt);
+  renderDiscountPage(cur,mod,fv,amEmail,fmt);
+  renderSignaturePage(cn,am,amEmail,cur,mod,fv,fmt);
+}
+
+function renderPainDisplay(){
+  const list=document.getElementById('painListDisplay');
+  list.innerHTML='';
+  const fp=pains.filter(p=>p.text.trim());
+  if(!fp.length){
+    list.innerHTML='<div style="color:#555;font-size:13px;text-align:center;padding:40px 0;">Agrega los dolores del cliente en el formulario ←</div>';
+    return;
+  }
+  fp.forEach((p,i)=>{
+    const item=document.createElement('div');
+    item.className='pain-item';
+    item.innerHTML=`<div class="pain-num">0${i+1}</div>
+      <div><div class="pain-text">${escHtml(p.text)}</div>
+      ${p.solution?`<div class="pain-solution">${escHtml(p.solution)}</div>`:''}</div>`;
+    list.appendChild(item);
+  });
+}
+
+function renderPricingPages(cur,mod,cn,amEmail,fv,fmt){
+  const mult=modalityMultiplier(mod);
+  const lbl=modalityLabel(mod);
+  const qty=+document.getElementById('planQty').value||0;
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const impl=+document.getElementById('planImpl').value||0;
+  const canalOn=document.getElementById('addonCanal').checked;
+  const canalP=+document.getElementById('addonCanalPrice').value||0;
+  const iaOn=document.getElementById('addonIA').checked;
+  const iaP=+document.getElementById('addonIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const notes=document.getElementById('pricingNotes').value;
+  const includes=document.getElementById('planIncludes').value;
+  const complianceOn=document.getElementById('modCompliance').checked;
+  const ticketingOn=document.getElementById('modTicketing').checked;
+
+  const modStr=[complianceOn?'Compliance':'',ticketingOn?'Ticketing':''].filter(Boolean).join(' + ')||'LemonFlow';
+
+  document.getElementById('disp-pricingIntro').innerHTML=
+    `Propuesta económica para <strong>${escHtml(cn)}</strong> · Módulo(s): <strong style="color:var(--purple-lt);">${modStr}</strong> · Modalidad: <strong>${mod}</strong>`;
+
+  // Módulos activos
+  const chips=document.getElementById('modulosActivos');
+  chips.innerHTML=[complianceOn?'Compliance':'',ticketingOn?'Ticketing':''].filter(Boolean)
+    .map(m=>`<span style="background:#2a1a4a;border:1px solid var(--purple-dk);border-radius:20px;padding:3px 12px;font-size:11px;color:var(--purple-lt);font-weight:600;">✓ ${m}</span>`).join('');
+
+  // Table headers
+  document.querySelector('#pricingTableFull thead tr').innerHTML=
+    `<th>Ítem</th><th>Detalle</th><th>Valor mensual</th><th>Total ${lbl}</th>`;
+
+  document.getElementById('pricingTableBody').innerHTML=`
+    <tr><td>LemonFlow${modStr!=='LemonFlow'?' — '+modStr:''}</td><td>${qty} usuarios · ${mod}</td><td class="price-highlight">${fmt(priceMens)}/mes</td><td>${fmt(priceMens*mult)}/${lbl}</td></tr>
+    <tr class="total-row"><td colspan="2">Total Plan Principal</td><td>${fmt(priceMens)}/mes</td><td>${fmt(priceMens*mult)}/${lbl}</td></tr>`;
+
+  const addons=[];
+  if(canalOn)addons.push({name:'Canal de Denuncias',price:canalP});
+  if(iaOn)addons.push({name:'IA Compliance (LIA)',price:iaP});
+  if(otroOn&&otroN)addons.push({name:otroN,price:otroP});
+  const addonsSection=document.getElementById('addonsSection');
+  if(addons.length){
+    addonsSection.style.display='block';
+    document.querySelector('#addonsTableFull thead tr').innerHTML=`<th>Servicio</th><th>Valor mensual</th><th>Total ${lbl}</th>`;
+    document.getElementById('addonsTableBody').innerHTML=addons.map(a=>
+      `<tr><td>${escHtml(a.name)}</td><td>${fmt(a.price)}/mes</td><td>${fmt(a.price*mult)}/${lbl}</td></tr>`
+    ).join('');
+  } else addonsSection.style.display='none';
+
+  const implSection=document.getElementById('implSection');
+  if(impl>0){implSection.style.display='block';document.getElementById('disp-impl').textContent=fmt(impl)+' (único)';}
+  else implSection.style.display='none';
+
+  const incArr=includes.split(',').filter(s=>s.trim());
+  const implInc=impl===0?['Implementación gratis']:[];
+  const allInc=[...implInc,...incArr.filter(s=>!s.toLowerCase().includes('implementación'))];
+  const incHTML=allInc.map(s=>`<div class="include-item">${escHtml(s.trim())}</div>`).join('');
+  document.getElementById('includesGrid').innerHTML=incHTML;
+  document.getElementById('includesGrid2').innerHTML=incHTML;
+
+  const notesBox=document.getElementById('notesBox');
+  if(notes.trim()){notesBox.style.display='block';document.getElementById('disp-notes').textContent=notes;}
+  else notesBox.style.display='none';
+
+  document.getElementById('disp-offerDate2').textContent=fv;
+  document.getElementById('disp-amEmail4').textContent=amEmail;
+  document.getElementById('disp-amEmail5').textContent=amEmail;
+  updateDiscountAddonFields();
+}
+
+function renderDiscountPage(cur,mod,fv,amEmail,fmt){
+  const mult=modalityMultiplier(mod);
+  const lbl=modalityLabel(mod);
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const canalOn=document.getElementById('addonCanal').checked;
+  const canalP=+document.getElementById('addonCanalPrice').value||0;
+  const iaOn=document.getElementById('addonIA').checked;
+  const iaP=+document.getElementById('addonIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;
+  const otroN=document.getElementById('addonOtroNombre').value||'Add-on';
+  const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const reason=document.getElementById('discountReason').value||'Oferta especial';
+  const ps=formatDate(document.getElementById('planStart').value);
+  const pe=formatDate(document.getElementById('planEnd').value);
+
+  const planFinal=getVal('discountPlanFinal',priceMens);
+  const canalFinal=getVal('discountCanalFinal',canalP);
+  const iaFinal=getVal('discountIAFinal',iaP);
+  const otroFinal=getVal('discountOtroFinal',otroP);
+
+  let totalRegMens=priceMens;
+  let totalOfMens=planFinal;
+  if(canalOn){totalRegMens+=canalP;totalOfMens+=canalFinal;}
+  if(iaOn){totalRegMens+=iaP;totalOfMens+=iaFinal;}
+  if(otroOn){totalRegMens+=otroP;totalOfMens+=otroFinal;}
+
+  const savingMens=totalRegMens-totalOfMens;
+  document.getElementById('disp-discountBadge').textContent=savingMens>0?`-${fmt(savingMens)}\n/mes`:'OFERTA';
+  document.getElementById('disp-discountTitle').textContent=reason;
+  document.getElementById('disp-discountDesc').textContent=`Condición exclusiva · Modalidad ${mod} · Total ${lbl}: ${fmt(totalOfMens*mult)}`;
+
+  const rows=[{name:'LemonFlow Plan',reg:priceMens,fin:planFinal}];
+  if(canalOn)rows.push({name:'Canal de Denuncias',reg:canalP,fin:canalFinal});
+  if(iaOn)rows.push({name:'IA Compliance (LIA)',reg:iaP,fin:iaFinal});
+  if(otroOn&&otroN)rows.push({name:otroN,reg:otroP,fin:otroFinal});
+
+  document.getElementById('discountTableBody').innerHTML=
+    `<tr><th style="background:#2a1a4a;color:var(--purple-lt);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Ítem</th>
+     <th style="background:#2a1a4a;color:var(--purple-lt);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Regular/mes</th>
+     <th style="background:#2a1a4a;color:var(--purple-lt);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Oferta/mes</th>
+     <th style="background:#2a1a4a;color:var(--purple-lt);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 14px;">Total ${lbl}</th></tr>`+
+    rows.map(r=>{
+      const sv=r.reg-r.fin;const changed=sv!==0;
+      return`<tr><td>${escHtml(r.name)}</td>
+        <td>${changed?`<span class="crossed">${fmt(r.reg)}</span>`:fmt(r.reg)}</td>
+        <td class="price-highlight">${fmt(r.fin)}/mes</td>
+        <td>${fmt(r.fin*mult)}/${lbl}${changed?` <span style="color:#88cc88;font-size:10px;">(ahorras ${fmt(sv*mult)})</span>`:''}</td></tr>`;
+    }).join('')+
+    `<tr class="total-row"><td colspan="2">Total ${mod}</td><td>${fmt(totalOfMens)}/mes</td><td>${fmt(totalOfMens*mult)}/${lbl}</td></tr>`;
+
+  document.getElementById('disp-totalDiscount').textContent=`${fmt(totalOfMens)}/mes`;
+  document.getElementById('disp-totalRegular').textContent=`${fmt(totalRegMens)}/mes`;
+  document.getElementById('disp-planPeriod').textContent=ps&&pe?`${ps} → ${pe}`:'A convenir';
+}
+
+function renderSignaturePage(cn,am,amEmail,cur,mod,fv,fmt){
+  const qty=+document.getElementById('planQty').value||0;
+  const priceMens=+document.getElementById('planPrice').value||0;
+  const canalOn=document.getElementById('addonCanal').checked;const canalP=+document.getElementById('addonCanalPrice').value||0;
+  const iaOn=document.getElementById('addonIA').checked;const iaP=+document.getElementById('addonIAPrice').value||0;
+  const otroOn=document.getElementById('addonOtro').checked;const otroP=+document.getElementById('addonOtroPrice').value||0;
+  const planFinal=getVal('discountPlanFinal',priceMens);
+  const canalFinal=getVal('discountCanalFinal',canalP);
+  const iaFinal=getVal('discountIAFinal',iaP);
+  const otroFinal=getVal('discountOtroFinal',otroP);
+  let totalOf=planFinal;
+  if(canalOn)totalOf+=canalFinal;if(iaOn)totalOf+=iaFinal;if(otroOn)totalOf+=otroFinal;
+  const sigCn=document.getElementById('sigClientName').value||'___________________________';
+  const sigCr=document.getElementById('sigClientRole').value||'Cargo';
+  const sigPl=document.getElementById('sigPlace').value||'_______________';
+  const complianceOn=document.getElementById('modCompliance').checked;
+  const ticketingOn=document.getElementById('modTicketing').checked;
+  const modStr=[complianceOn?'Compliance':'',ticketingOn?'Ticketing':''].filter(Boolean).join(' + ')||'LemonFlow';
+
+  document.getElementById('sig-clientName').textContent=cn;
+  document.getElementById('sig-plan').textContent=`${qty} usuarios · ${modStr} · ${mod}`;
+  document.getElementById('sig-total').textContent=`${fmt(totalOf)}/mes`;
+  document.getElementById('sig-validDate').textContent=fv;
+  document.getElementById('sig-modality').textContent=mod;
+  document.getElementById('sig-am').textContent=am;
+  document.getElementById('sig-clientSignName').textContent=sigCn;
+  document.getElementById('sig-clientSignRole').textContent=sigCr;
+  document.getElementById('sig-clientCompany').textContent=cn;
+  document.getElementById('sig-amSignName').textContent=am;
+  document.getElementById('sig-placeDate').textContent=`${sigPl}, _____ de _____________ de _____`;
+}
+
+/* PDF */
+async function downloadPDF(){
+  const overlay=document.getElementById('loadingOverlay');
+  overlay.classList.add('active');
+  try{
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pages=document.querySelectorAll('.pdf-page');
+    for(let i=0;i<pages.length;i++){
+      const canvas=await html2canvas(pages[i],{scale:2,useCORS:true,backgroundColor:'#18181B',logging:false,width:794,height:1123});
+      const img=canvas.toDataURL('image/jpeg',0.95);
+      if(i>0)pdf.addPage();
+      pdf.addImage(img,'JPEG',0,0,210,297);
+    }
+    const name=document.getElementById('clientName').value||'Propuesta';
+    pdf.save(`LemonFlow_Propuesta_${name.replace(/\s+/g,'_')}.pdf`);
+  }catch(e){console.error(e);alert('Error al generar PDF.');}
+  finally{overlay.classList.remove('active');}
+}
+
+function formatDate(v){if(!v)return'—';const[y,m,d]=v.split('-');return`${d}/${m}/${y}`;}
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
